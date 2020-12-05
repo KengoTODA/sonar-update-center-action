@@ -1,5 +1,5 @@
 import {getOctokit} from '@actions/github'
-import {gt} from 'semver'
+import gt from 'semver/functions/gt'
 
 export async function searchLatestMinorVersion(token: string): Promise<string> {
   const octokit = getOctokit(token)
