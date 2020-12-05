@@ -1,11 +1,34 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'sonar update center action'
+description: 'The GitHub Action updating prop file to release SonarQube plugin'
+author: 'Kengo TODA'
 inputs:
-  milliseconds: # change this
+  prop-file:
+    description: 'The file path in the SonarSource/sonar-update-center-properties project'
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+  description:
+    description: 'The description of newly released version'
+    required: true
+  minimal-supported-sq-version:
+    description: 'The minimal supported version of SonarQube (e.g. 7.9)'
+    required: true
+  latest-supported-sq-version:
+    description: 'The latest supported version of SonarQube (e.g. LATEST)'
+    default: 'LATEST'
+  changelog-url:
+    description: 'The URL of changelog page'
+    required: true
+  download-url:
+    description: 'The URL of plugin .jar file'
+    required: true
+  public-version:
+    description: 'The version to release to the sonar update center'
+    required: true
+  github-token:
+    description: 'The GitHub Personal Access Token with the public_repo permission'
+    required: true
+  skip-creating-pull-request:
+    description: 'For debug; Skip the process to create a pull request'
+    default: false
 runs:
   using: 'node12'
   main: 'dist/index.js'

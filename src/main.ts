@@ -1,16 +1,39 @@
 import * as core from '@actions/core'
-import {wait} from './wait'
+import {parseFile, write} from 'promisified-properties'
+import {update} from './update'
 
 async function run(): Promise<void> {
   try {
-    const ms: string = core.getInput('milliseconds')
-    core.debug(`Waiting ${ms} milliseconds ...`) // debug is only output if you set the secret `ACTIONS_RUNNER_DEBUG` to true
+    // TODO fork and clone the SonarSource/sonar-update-center-properties project
+    const propFile = core.getInput('prop-file')
 
-    core.debug(new Date().toTimeString())
-    await wait(parseInt(ms, 10))
-    core.debug(new Date().toTimeString())
+    const description = core.getInput('description')
+    const minimalSupportedVersion = core.getInput(
+      'minimal-supported-sq-version'
+    )
+    const latestSupportedVersion = core.getInput('latest-supported-sq-version')
+    const changelogUrl = core.getInput('changelog-url')
+    const downloadUrl = core.getInput('download-url')
+    const publicVersion = core.getInput('public-version')
+    const githubToken = core.getInput('github-token')
 
-    core.setOutput('time', new Date().toTimeString())
+    const prop = await parseFile(propFile)
+    const updatedProp = await update(
+      githubToken,
+      prop,
+      description,
+      publicVersion,
+      `[${minimalSupportedVersion},${latestSupportedVersion}]`,
+      changelogUrl,
+      downloadUrl
+    )
+    await write(updatedProp, propFile)
+
+    // TODO commit and push the updated properties file
+    const skip = core.getInput('skip-creating-pull-request')
+    if (!skip) {
+      // TODO create a PR, and post to the SQ forum
+    }
   } catch (error) {
     core.setFailed(error.message)
   }
