@@ -1,15 +1,15 @@
 import * as core from '@actions/core'
 import {parseFile, write} from 'promisified-properties'
 import {update} from './update'
-import {fork} from './github'
+import {checkoutSourceRepo, fork} from './github'
+import {join} from 'path'
 
 async function run(): Promise<void> {
   try {
     const githubToken = core.getInput('github-token')
     const forked = await fork(githubToken)
-    // TODO update the default branch in the forked repository
-    // TODO create a topic branch from the default branch
-    const propFile = core.getInput('prop-file')
+    const {rootDir} = await checkoutSourceRepo(githubToken, forked.owner)
+    const propFile = join(rootDir, core.getInput('prop-file'))
 
     const description = core.getInput('description')
     const minimalSupportedVersion = core.getInput(

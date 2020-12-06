@@ -1,5 +1,10 @@
 import {debug} from '@actions/core'
+import {exec} from '@actions/exec'
 import {getOctokit} from '@actions/github'
+import {tmpdir} from 'os'
+import {mkdtemp} from 'fs'
+import {promisify} from 'util'
+import {join} from 'path'
 
 async function wait(ms: number): Promise<void> {
   return new Promise(resolve => {
@@ -7,6 +12,56 @@ async function wait(ms: number): Promise<void> {
       resolve(void 0)
     }, ms)
   })
+}
+
+function generateRandomBranchName(): string {
+  const random = Math.floor(Math.random() * 2147483647)
+  return `sonar-update-center-action-${random}`
+}
+
+/**
+ * Checkout the default branch with the SonarSource/sonar-update-center-properties repository
+ */
+export async function checkoutSourceRepo(
+  token: string,
+  owner: string
+): Promise<{
+  rootDir: string
+  branch: string
+}> {
+  const rootDir = await promisify(mkdtemp)(
+    join(tmpdir(), 'sonar-update-center-action-')
+  )
+
+  await exec(
+    'git',
+    [
+      'clone',
+      `https://${token}@github.com/${owner}/sonar-update-center-properties.git`,
+      '.'
+    ],
+    {
+      cwd: rootDir
+    }
+  )
+  await exec(
+    'git',
+    [
+      'remote',
+      'add',
+      'sonarsource',
+      `https://${token}@github.com/SonarSource/sonar-update-center-properties.git`
+    ],
+    {
+      cwd: rootDir
+    }
+  )
+  const branch = generateRandomBranchName()
+  // TODO get the name of default branch dynamically
+  await exec('git', ['checkout', '-b', branch, 'sonarsource/master'], {
+    cwd: rootDir
+  })
+  return {rootDir, branch}
 }
 
 /**
