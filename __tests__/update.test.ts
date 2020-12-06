@@ -14,6 +14,7 @@ beforeEach(() => {
     .reply(200, releases)
 })
 afterEach(() => {
+  nock.cleanAll()
   nock.enableNetConnect()
 })
 
