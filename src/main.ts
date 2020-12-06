@@ -1,10 +1,14 @@
 import * as core from '@actions/core'
 import {parseFile, write} from 'promisified-properties'
 import {update} from './update'
+import {fork} from './github'
 
 async function run(): Promise<void> {
   try {
-    // TODO fork and clone the SonarSource/sonar-update-center-properties project
+    const githubToken = core.getInput('github-token')
+    const forked = await fork(githubToken)
+    // TODO update the default branch in the forked repository
+    // TODO create a topic branch from the default branch
     const propFile = core.getInput('prop-file')
 
     const description = core.getInput('description')
@@ -15,7 +19,6 @@ async function run(): Promise<void> {
     const changelogUrl = core.getInput('changelog-url')
     const downloadUrl = core.getInput('download-url')
     const publicVersion = core.getInput('public-version')
-    const githubToken = core.getInput('github-token')
 
     const prop = await parseFile(propFile)
     const updatedProp = await update(

@@ -1,0 +1,72 @@
+import {debug} from '@actions/core'
+import {getOctokit} from '@actions/github'
+
+async function wait(ms: number): Promise<void> {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(void 0)
+    }, ms)
+  })
+}
+
+/**
+ *
+ * @param token
+ * @returns owner and repo of the forked repository
+ */
+export async function fork(
+  token: string
+): Promise<{owner: string; repo: string}> {
+  const octokit = getOctokit(token)
+  debug(`Forking the SonarSource/sonar-update-center-properties repository...`)
+  await octokit.repos.createFork({
+    owner: 'SonarSource',
+    repo: 'sonar-update-center-properties'
+  })
+  debug(
+    `Forking finished. Confirming the progress of fork process up to five minutes...`
+  )
+
+  const authenticated = await octokit.users.getAuthenticated()
+  debug(
+    `Expecting that the forked repository exists as ${authenticated.data.login}/sonar-update-center-properties.`
+  )
+  const startTime = Date.now()
+  let count = 1
+  // wait while GitHub is making the fork up to 5 minutes
+  while (Date.now() - startTime < 5 * 60 * 1000) {
+    debug(`Trying to check existence of the forked repo (Time: ${count})...`)
+    try {
+      const resp = await octokit.repos.get({
+        owner: authenticated.data.login,
+        repo: 'sonar-update-center-properties'
+      })
+      if (
+        resp.data.fork &&
+        resp.data.source?.full_name ===
+          'SonarSource/sonar-update-center-properties'
+      ) {
+        debug(`The forked repository has been found successfully.`)
+      } else {
+        throw new Error(
+          `The ${authenticated.data.login}/sonar-update-center-properties repository is not forked from SonarSource/sonar-update-center-properties`
+        )
+      }
+
+      break
+    } catch (error) {
+      if (error.name === 'HttpError' && error.status === 404) {
+        count++
+        await wait(10 * 1000)
+        continue
+      }
+
+      throw error
+    }
+  }
+
+  return {
+    owner: authenticated.data.login,
+    repo: 'sonar-update-center-properties'
+  }
+}
