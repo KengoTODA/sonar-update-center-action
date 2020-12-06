@@ -8,14 +8,9 @@ if (!token) {
   throw new Error('No GITHUB_TOKEN env var found')
 }
 beforeEach(() => {
-  nock.disableNetConnect()
   const scope = nock('https://api.github.com')
     .get('/repos/SonarSource/sonarqube/releases')
     .reply(200, releases)
-})
-afterEach(() => {
-  nock.cleanAll()
-  nock.enableNetConnect()
 })
 
 test('update() replaces the LATEST in the previous version', async () => {
