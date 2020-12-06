@@ -13,6 +13,9 @@ beforeEach(() => {
     .get('/repos/SonarSource/sonarqube/releases')
     .reply(200, releases)
 })
+afterEach(() => {
+  nock.enableNetConnect()
+})
 
 test('update() replaces the LATEST in the previous version', async () => {
   const prev = new Map<string, string>()
