@@ -1,17 +1,9 @@
-import nock from 'nock'
-import {SemVer} from 'semver'
 import {update} from '../src/update'
-import releases from './fixtures/sonarqube-releases.json'
 
 const token = process.env.GITHUB_TOKEN
 if (!token) {
   throw new Error('No GITHUB_TOKEN env var found')
 }
-beforeEach(() => {
-  const scope = nock('https://api.github.com')
-    .get('/repos/SonarSource/sonarqube/releases')
-    .reply(200, releases)
-})
 
 test('update() replaces the LATEST in the previous version', async () => {
   const prev = new Map<string, string>()

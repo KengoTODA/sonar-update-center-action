@@ -20,9 +20,9 @@ test('replacePatch() replaces the patch version with wildcard', () => {
 })
 
 test('searchLatestMinorVersion()', async () => {
-  nock.disableNetConnect()
   const scope = nock('https://api.github.com')
     .get('/repos/SonarSource/sonarqube/releases')
     .reply(200, releases)
   expect(await searchLatestMinorVersion(token)).toBe('8.5.*')
+  scope.done()
 })
