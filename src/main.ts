@@ -1,8 +1,22 @@
 import * as core from '@actions/core'
 import {parseFile, write} from 'promisified-properties'
 import {update} from './update'
-import {checkoutSourceRepo, commitAndPush, fork} from './github'
+import {
+  checkoutSourceRepo,
+  commitAndPush,
+  fork,
+  generateRandomBranchName
+} from './github'
 import {join} from 'path'
+import {createHash} from 'crypto'
+import {readFile} from 'fs'
+import {promisify} from 'util'
+
+async function md5sum(path: string): Promise<string> {
+  return createHash('md5')
+    .update(await promisify(readFile)(path, 'utf-8'), 'utf8')
+    .digest('hex')
+}
 
 async function run(): Promise<void> {
   try {
@@ -25,7 +39,23 @@ async function run(): Promise<void> {
       throw new Error(`Unsupproted publicVersion found: ${publicVersion}`)
     }
 
+    const sourceHash = md5sum(propFile)
     const prop = await parseFile(propFile)
+    await write(prop, propFile)
+    const formattedHash = md5sum(propFile)
+    const branch = generateRandomBranchName()
+    if (sourceHash !== formattedHash) {
+      // this is the first usage, so commit the format change to ease PR review
+      await commitAndPush(
+        githubToken,
+        forked.owner,
+        forked.repo,
+        path,
+        rootDir,
+        `format the properties file for automation`,
+        branch
+      )
+    }
     const mavenArtifactId = prop.get('defaults.mavenArtifactId')
     if (!mavenArtifactId) {
       throw new Error(
@@ -50,8 +80,8 @@ async function run(): Promise<void> {
       forked.repo,
       path,
       rootDir,
-      mavenArtifactId,
-      publicVersion
+      `update properties file to release ${mavenArtifactId} ${publicVersion}`,
+      branch
     )
     const skip = core.getInput('skip-creating-pull-request')
     if (!skip) {

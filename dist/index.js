@@ -17,7 +17,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.commitAndPush = exports.fork = exports.checkoutSourceRepo = void 0;
+exports.commitAndPush = exports.fork = exports.checkoutSourceRepo = exports.generateRandomBranchName = void 0;
 const core_1 = __webpack_require__(2186);
 const exec_1 = __webpack_require__(1514);
 const github_1 = __webpack_require__(5438);
@@ -38,6 +38,7 @@ function generateRandomBranchName() {
     const random = Math.floor(Math.random() * 2147483647);
     return `sonar-update-center-action-${random}`;
 }
+exports.generateRandomBranchName = generateRandomBranchName;
 /**
  * Checkout the default branch with the SonarSource/sonar-update-center-properties repository
  */
@@ -123,7 +124,7 @@ function fork(token) {
     });
 }
 exports.fork = fork;
-function commitAndPush(token, owner, repo, path, rootDir, mavenArtifactId, version) {
+function commitAndPush(token, owner, repo, path, rootDir, message, branch) {
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = github_1.getOctokit(token);
         const ref = yield octokit.git.getRef({ owner, repo, ref: 'heads/master' });
@@ -151,15 +152,18 @@ function commitAndPush(token, owner, repo, path, rootDir, mavenArtifactId, versi
             ]
         });
         const commit = yield octokit.git.createCommit({
-            owner, repo, message: `update properties file to release ${mavenArtifactId} ${version}`, tree: tree.data.sha, parents: [commit_sha]
-        });
-        const branch = yield octokit.git.createRef({
             owner,
             repo,
-            ref: `refs/heads/${generateRandomBranchName()}`,
+            message,
+            tree: tree.data.sha,
+            parents: [commit_sha]
+        });
+        yield octokit.git.createRef({
+            owner,
+            repo,
+            ref: `refs/heads/${branch}`,
             sha: commit.data.sha
         });
-        return branch.data.ref;
     });
 }
 exports.commitAndPush = commitAndPush;
@@ -206,6 +210,16 @@ const promisified_properties_1 = __webpack_require__(346);
 const update_1 = __webpack_require__(3056);
 const github_1 = __webpack_require__(5928);
 const path_1 = __webpack_require__(5622);
+const crypto_1 = __webpack_require__(6417);
+const fs_1 = __webpack_require__(5747);
+const util_1 = __webpack_require__(1669);
+function md5sum(path) {
+    return __awaiter(this, void 0, void 0, function* () {
+        return crypto_1.createHash('md5')
+            .update(yield util_1.promisify(fs_1.readFile)(path, 'utf-8'), 'utf8')
+            .digest('hex');
+    });
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -224,14 +238,22 @@ function run() {
             if (!publicVersion || publicVersion.includes(',')) {
                 throw new Error(`Unsupproted publicVersion found: ${publicVersion}`);
             }
+            const sourceHash = md5sum(propFile);
             const prop = yield promisified_properties_1.parseFile(propFile);
+            yield promisified_properties_1.write(prop, propFile);
+            const formattedHash = md5sum(propFile);
+            const branch = github_1.generateRandomBranchName();
+            if (sourceHash !== formattedHash) {
+                // this is the first usage, so commit the format change to ease PR review
+                yield github_1.commitAndPush(githubToken, forked.owner, forked.repo, path, rootDir, `format the properties file for automation`, branch);
+            }
             const mavenArtifactId = prop.get('defaults.mavenArtifactId');
             if (!mavenArtifactId) {
                 throw new Error('No defaults.mavenArtifactId found in the properties file');
             }
             const updatedProp = yield update_1.update(githubToken, prop, description, publicVersion, `[${minimalSupportedVersion},${latestSupportedVersion}]`, changelogUrl, downloadUrl);
             yield promisified_properties_1.write(updatedProp, propFile);
-            yield github_1.commitAndPush(githubToken, forked.owner, forked.repo, path, rootDir, mavenArtifactId, publicVersion);
+            yield github_1.commitAndPush(githubToken, forked.owner, forked.repo, path, rootDir, `update properties file to release ${mavenArtifactId} ${publicVersion}`, branch);
             const skip = core.getInput('skip-creating-pull-request');
             if (!skip) {
                 // TODO create a PR, and post to the SQ forum
@@ -9659,6 +9681,14 @@ module.exports = require("assert");;
 
 "use strict";
 module.exports = require("child_process");;
+
+/***/ }),
+
+/***/ 6417:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("crypto");;
 
 /***/ }),
 

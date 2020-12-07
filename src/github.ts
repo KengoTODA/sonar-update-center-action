@@ -14,7 +14,7 @@ async function wait(ms: number): Promise<void> {
   })
 }
 
-function generateRandomBranchName(): string {
+export function generateRandomBranchName(): string {
   const random = Math.floor(Math.random() * 2147483647)
   return `sonar-update-center-action-${random}`
 }
@@ -131,9 +131,9 @@ export async function commitAndPush(
   repo: string,
   path: string,
   rootDir: string,
-  mavenArtifactId: string,
-  version: string
-): Promise<string> {
+  message: string,
+  branch: string
+): Promise<void> {
   const octokit = getOctokit(token)
   const ref = await octokit.git.getRef({owner, repo, ref: 'heads/master'})
   const commit_sha = ref.data.object.sha
@@ -162,15 +162,14 @@ export async function commitAndPush(
   const commit = await octokit.git.createCommit({
     owner,
     repo,
-    message: `update properties file to release ${mavenArtifactId} ${version}`,
+    message,
     tree: tree.data.sha,
     parents: [commit_sha]
   })
-  const branch = await octokit.git.createRef({
+  await octokit.git.createRef({
     owner,
     repo,
-    ref: `refs/heads/${generateRandomBranchName()}`,
+    ref: `refs/heads/${branch}`,
     sha: commit.data.sha
   })
-  return branch.data.ref
 }
