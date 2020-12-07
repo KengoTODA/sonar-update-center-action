@@ -11,6 +11,10 @@ if (!token) {
   throw new Error('No GITHUB_TOKEN env var found')
 }
 
+afterEach(() => {
+  nock.cleanAll()
+})
+
 test('dropAdditionalVer() drops the trailing version after the patch version', () => {
   expect(dropAdditionalVer('8.5.1.38104')).toBe('8.5.1')
 })

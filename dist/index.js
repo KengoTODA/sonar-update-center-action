@@ -17,7 +17,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.fork = exports.checkoutSourceRepo = void 0;
+exports.commitAndPush = exports.fork = exports.checkoutSourceRepo = void 0;
 const core_1 = __webpack_require__(2186);
 const exec_1 = __webpack_require__(1514);
 const github_1 = __webpack_require__(5438);
@@ -121,6 +121,27 @@ function fork(token) {
     });
 }
 exports.fork = fork;
+function commitAndPush(propFile, rootDir, branch = 'HEAD', mavenArtifactId, version) {
+    return __awaiter(this, void 0, void 0, function* () {
+        yield exec_1.exec('git', ['add', propFile], {
+            cwd: rootDir
+        });
+        core_1.debug('Committing the updated properties file...');
+        yield exec_1.exec('git', [
+            'commit',
+            '-m',
+            `update properties file to release ${mavenArtifactId} ${version}`
+        ], {
+            cwd: rootDir
+        });
+        core_1.debug(`Committing finished. Pushing the ${branch} branch to GitHub...`);
+        yield exec_1.exec('git', ['push', 'origin', branch], {
+            cwd: rootDir
+        });
+        core_1.debug('Pushing finished.');
+    });
+}
+exports.commitAndPush = commitAndPush;
 
 
 /***/ }),
@@ -169,7 +190,7 @@ function run() {
         try {
             const githubToken = core.getInput('github-token');
             const forked = yield github_1.fork(githubToken);
-            const { rootDir } = yield github_1.checkoutSourceRepo(githubToken, forked.owner);
+            const { branch, rootDir } = yield github_1.checkoutSourceRepo(githubToken, forked.owner);
             const propFile = path_1.join(rootDir, core.getInput('prop-file'));
             const description = core.getInput('description');
             const minimalSupportedVersion = core.getInput('minimal-supported-sq-version');
@@ -177,10 +198,17 @@ function run() {
             const changelogUrl = core.getInput('changelog-url');
             const downloadUrl = core.getInput('download-url');
             const publicVersion = core.getInput('public-version');
+            if (!publicVersion || publicVersion.includes(',')) {
+                throw new Error(`Unsupproted publicVersion found: ${publicVersion}`);
+            }
             const prop = yield promisified_properties_1.parseFile(propFile);
+            const mavenArtifactId = prop.get('defaults.mavenArtifactId');
+            if (!mavenArtifactId) {
+                throw new Error('No defaults.mavenArtifactId found in the properties file');
+            }
             const updatedProp = yield update_1.update(githubToken, prop, description, publicVersion, `[${minimalSupportedVersion},${latestSupportedVersion}]`, changelogUrl, downloadUrl);
             yield promisified_properties_1.write(updatedProp, propFile);
-            // TODO commit and push the updated properties file
+            yield github_1.commitAndPush(propFile, rootDir, branch, mavenArtifactId, publicVersion);
             const skip = core.getInput('skip-creating-pull-request');
             if (!skip) {
                 // TODO create a PR, and post to the SQ forum

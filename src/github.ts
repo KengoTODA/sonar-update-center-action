@@ -125,3 +125,32 @@ export async function fork(
     repo: 'sonar-update-center-properties'
   }
 }
+
+export async function commitAndPush(
+  propFile: string,
+  rootDir: string,
+  branch = 'HEAD',
+  mavenArtifactId: string,
+  version: string
+): Promise<void> {
+  await exec('git', ['add', propFile], {
+    cwd: rootDir
+  })
+  debug('Committing the updated properties file...')
+  await exec(
+    'git',
+    [
+      'commit',
+      '-m',
+      `update properties file to release ${mavenArtifactId} ${version}`
+    ],
+    {
+      cwd: rootDir
+    }
+  )
+  debug(`Committing finished. Pushing the ${branch} branch to GitHub...`)
+  await exec('git', ['push', 'origin', branch], {
+    cwd: rootDir
+  })
+  debug('Pushing finished.')
+}
