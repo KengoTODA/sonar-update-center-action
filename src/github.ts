@@ -57,6 +57,9 @@ export async function checkoutSourceRepo(
     }
   )
   const branch = generateRandomBranchName()
+  await exec('git', ['fetch', 'sonarsource'], {
+    cwd: rootDir
+  })
   // TODO get the name of default branch dynamically
   await exec('git', ['checkout', '-b', branch, 'sonarsource/master'], {
     cwd: rootDir

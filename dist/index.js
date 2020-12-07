@@ -60,6 +60,9 @@ function checkoutSourceRepo(token, owner) {
             cwd: rootDir
         });
         const branch = generateRandomBranchName();
+        yield exec_1.exec('git', ['fetch', 'sonarsource'], {
+            cwd: rootDir
+        });
         // TODO get the name of default branch dynamically
         yield exec_1.exec('git', ['checkout', '-b', branch, 'sonarsource/master'], {
             cwd: rootDir
