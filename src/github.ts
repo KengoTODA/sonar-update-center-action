@@ -14,7 +14,7 @@ async function wait(ms: number): Promise<void> {
   })
 }
 
-export function generateRandomBranchName(): string {
+function generateRandomBranchName(): string {
   const random = Math.floor(Math.random() * 2147483647)
   return `sonar-update-center-action-${random}`
 }
@@ -125,18 +125,32 @@ export async function fork(
   }
 }
 
-export async function commitAndPush(
+export async function createBranch(
+  token: string,
+  owner: string,
+  repo: string,
+  sha: string
+): Promise<void> {
+  const octokit = getOctokit(token)
+  await octokit.git.createRef({
+    owner,
+    repo,
+    ref: `refs/heads/${generateRandomBranchName()}`,
+    sha
+  })
+}
+export async function commit(
   token: string,
   owner: string,
   repo: string,
   path: string,
   rootDir: string,
   message: string,
-  branch: string
-): Promise<void> {
+  ref: string
+): Promise<string> {
   const octokit = getOctokit(token)
-  const ref = await octokit.git.getRef({owner, repo, ref: 'heads/master'})
-  const commit_sha = ref.data.object.sha
+  const commit_sha = (await octokit.git.getRef({owner, repo, ref})).data.object
+    .sha
   const content = await promisify(readFile)(join(rootDir, path), {
     encoding: 'utf-8'
   })
@@ -159,17 +173,13 @@ export async function commitAndPush(
       }
     ]
   })
-  const commit = await octokit.git.createCommit({
-    owner,
-    repo,
-    message,
-    tree: tree.data.sha,
-    parents: [commit_sha]
-  })
-  await octokit.git.createRef({
-    owner,
-    repo,
-    ref: `refs/heads/${branch}`,
-    sha: commit.data.sha
-  })
+  return (
+    await octokit.git.createCommit({
+      owner,
+      repo,
+      message,
+      tree: tree.data.sha,
+      parents: [commit_sha]
+    })
+  ).data.sha
 }

@@ -1,12 +1,7 @@
 import * as core from '@actions/core'
 import {parseFile, write} from 'promisified-properties'
 import {update} from './update'
-import {
-  checkoutSourceRepo,
-  commitAndPush,
-  fork,
-  generateRandomBranchName
-} from './github'
+import {checkoutSourceRepo, commit, createBranch, fork} from './github'
 import {join} from 'path'
 import {createHash} from 'crypto'
 import {readFile} from 'fs'
@@ -43,17 +38,17 @@ async function run(): Promise<void> {
     const prop = await parseFile(propFile)
     await write(prop, propFile)
     const formattedHash = md5sum(propFile)
-    const branch = generateRandomBranchName()
+    let ref = 'heads/master'
     if (sourceHash !== formattedHash) {
       // this is the first usage, so commit the format change to ease PR review
-      await commitAndPush(
+      ref = await commit(
         githubToken,
         forked.owner,
         forked.repo,
         path,
         rootDir,
         `format the properties file for automation`,
-        branch
+        ref
       )
     }
     const mavenArtifactId = prop.get('defaults.mavenArtifactId')
@@ -74,15 +69,16 @@ async function run(): Promise<void> {
     )
     await write(updatedProp, propFile)
 
-    await commitAndPush(
+    ref = await commit(
       githubToken,
       forked.owner,
       forked.repo,
       path,
       rootDir,
       `update properties file to release ${mavenArtifactId} ${publicVersion}`,
-      branch
+      ref
     )
+    createBranch(githubToken, forked.owner, forked.repo, ref)
     const skip = core.getInput('skip-creating-pull-request')
     if (!skip) {
       // TODO create a PR, and post to the SQ forum

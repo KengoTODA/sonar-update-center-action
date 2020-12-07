@@ -17,7 +17,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.commitAndPush = exports.fork = exports.checkoutSourceRepo = exports.generateRandomBranchName = void 0;
+exports.commit = exports.createBranch = exports.fork = exports.checkoutSourceRepo = void 0;
 const core_1 = __webpack_require__(2186);
 const exec_1 = __webpack_require__(1514);
 const github_1 = __webpack_require__(5438);
@@ -38,7 +38,6 @@ function generateRandomBranchName() {
     const random = Math.floor(Math.random() * 2147483647);
     return `sonar-update-center-action-${random}`;
 }
-exports.generateRandomBranchName = generateRandomBranchName;
 /**
  * Checkout the default branch with the SonarSource/sonar-update-center-properties repository
  */
@@ -124,11 +123,23 @@ function fork(token) {
     });
 }
 exports.fork = fork;
-function commitAndPush(token, owner, repo, path, rootDir, message, branch) {
+function createBranch(token, owner, repo, sha) {
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = github_1.getOctokit(token);
-        const ref = yield octokit.git.getRef({ owner, repo, ref: 'heads/master' });
-        const commit_sha = ref.data.object.sha;
+        yield octokit.git.createRef({
+            owner,
+            repo,
+            ref: `refs/heads/${generateRandomBranchName()}`,
+            sha
+        });
+    });
+}
+exports.createBranch = createBranch;
+function commit(token, owner, repo, path, rootDir, message, ref) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const octokit = github_1.getOctokit(token);
+        const commit_sha = (yield octokit.git.getRef({ owner, repo, ref })).data.object
+            .sha;
         const content = yield util_1.promisify(fs_1.readFile)(path_1.join(rootDir, path), {
             encoding: 'utf-8'
         });
@@ -151,22 +162,16 @@ function commitAndPush(token, owner, repo, path, rootDir, message, branch) {
                 }
             ]
         });
-        const commit = yield octokit.git.createCommit({
+        return (yield octokit.git.createCommit({
             owner,
             repo,
             message,
             tree: tree.data.sha,
             parents: [commit_sha]
-        });
-        yield octokit.git.createRef({
-            owner,
-            repo,
-            ref: `refs/heads/${branch}`,
-            sha: commit.data.sha
-        });
+        })).data.sha;
     });
 }
-exports.commitAndPush = commitAndPush;
+exports.commit = commit;
 
 
 /***/ }),
@@ -242,10 +247,10 @@ function run() {
             const prop = yield promisified_properties_1.parseFile(propFile);
             yield promisified_properties_1.write(prop, propFile);
             const formattedHash = md5sum(propFile);
-            const branch = github_1.generateRandomBranchName();
+            let ref = 'heads/master';
             if (sourceHash !== formattedHash) {
                 // this is the first usage, so commit the format change to ease PR review
-                yield github_1.commitAndPush(githubToken, forked.owner, forked.repo, path, rootDir, `format the properties file for automation`, branch);
+                ref = yield github_1.commit(githubToken, forked.owner, forked.repo, path, rootDir, `format the properties file for automation`, ref);
             }
             const mavenArtifactId = prop.get('defaults.mavenArtifactId');
             if (!mavenArtifactId) {
@@ -253,7 +258,8 @@ function run() {
             }
             const updatedProp = yield update_1.update(githubToken, prop, description, publicVersion, `[${minimalSupportedVersion},${latestSupportedVersion}]`, changelogUrl, downloadUrl);
             yield promisified_properties_1.write(updatedProp, propFile);
-            yield github_1.commitAndPush(githubToken, forked.owner, forked.repo, path, rootDir, `update properties file to release ${mavenArtifactId} ${publicVersion}`, branch);
+            ref = yield github_1.commit(githubToken, forked.owner, forked.repo, path, rootDir, `update properties file to release ${mavenArtifactId} ${publicVersion}`, ref);
+            github_1.createBranch(githubToken, forked.owner, forked.repo, ref);
             const skip = core.getInput('skip-creating-pull-request');
             if (!skip) {
                 // TODO create a PR, and post to the SQ forum
