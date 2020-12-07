@@ -131,14 +131,17 @@ export async function createBranch(
   repo: string,
   sha: string
 ): Promise<void> {
+  const branch = generateRandomBranchName()
+  debug(`creating a branch refs/heads/${branch} with specified sha: ${sha}`)
   const octokit = getOctokit(token)
   await octokit.git.createRef({
     owner,
     repo,
-    ref: `refs/heads/${generateRandomBranchName()}`,
+    ref: `refs/heads/${branch}`,
     sha
   })
 }
+
 export async function commit(
   token: string,
   owner: string,
@@ -149,17 +152,20 @@ export async function commit(
   ref: string
 ): Promise<string> {
   const octokit = getOctokit(token)
+  debug(`Finding sha of the parent commit with ref ${ref}...`)
   const commit_sha = (await octokit.git.getRef({owner, repo, ref})).data.object
     .sha
   const content = await promisify(readFile)(join(rootDir, path), {
     encoding: 'utf-8'
   })
+  debug('Creating a blob...')
   const blob = await octokit.git.createBlob({
     owner,
     repo,
     content,
     encoding: 'utf-8'
   })
+  debug(`Creating a tree with the base tree ${commit_sha}...`)
   const tree = await octokit.git.createTree({
     owner,
     repo,
@@ -173,7 +179,10 @@ export async function commit(
       }
     ]
   })
-  return (
+  debug(
+    `Creating a commit with tree ${tree.data.sha} and parent ${commit_sha}...`
+  )
+  const newCommitSha = (
     await octokit.git.createCommit({
       owner,
       repo,
@@ -182,4 +191,6 @@ export async function commit(
       parents: [commit_sha]
     })
   ).data.sha
+  debug(`Created a commit as ${newCommitSha}`)
+  return newCommitSha
 }

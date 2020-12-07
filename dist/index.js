@@ -125,11 +125,13 @@ function fork(token) {
 exports.fork = fork;
 function createBranch(token, owner, repo, sha) {
     return __awaiter(this, void 0, void 0, function* () {
+        const branch = generateRandomBranchName();
+        core_1.debug(`creating a branch refs/heads/${branch} with specified sha: ${sha}`);
         const octokit = github_1.getOctokit(token);
         yield octokit.git.createRef({
             owner,
             repo,
-            ref: `refs/heads/${generateRandomBranchName()}`,
+            ref: `refs/heads/${branch}`,
             sha
         });
     });
@@ -138,17 +140,20 @@ exports.createBranch = createBranch;
 function commit(token, owner, repo, path, rootDir, message, ref) {
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = github_1.getOctokit(token);
+        core_1.debug(`Finding sha of the parent commit with ref ${ref}...`);
         const commit_sha = (yield octokit.git.getRef({ owner, repo, ref })).data.object
             .sha;
         const content = yield util_1.promisify(fs_1.readFile)(path_1.join(rootDir, path), {
             encoding: 'utf-8'
         });
+        core_1.debug('Creating a blob...');
         const blob = yield octokit.git.createBlob({
             owner,
             repo,
             content,
             encoding: 'utf-8'
         });
+        core_1.debug(`Creating a tree with the base tree ${commit_sha}...`);
         const tree = yield octokit.git.createTree({
             owner,
             repo,
@@ -162,13 +167,16 @@ function commit(token, owner, repo, path, rootDir, message, ref) {
                 }
             ]
         });
-        return (yield octokit.git.createCommit({
+        core_1.debug(`Creating a commit with tree ${tree.data.sha} and parent ${commit_sha}...`);
+        const newCommitSha = (yield octokit.git.createCommit({
             owner,
             repo,
             message,
             tree: tree.data.sha,
             parents: [commit_sha]
         })).data.sha;
+        core_1.debug(`Created a commit as ${newCommitSha}`);
+        return newCommitSha;
     });
 }
 exports.commit = commit;
