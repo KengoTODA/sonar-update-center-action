@@ -229,7 +229,7 @@ function run() {
             }
             const updatedProp = yield update_1.update(githubToken, prop, description, publicVersion, `[${minimalSupportedVersion},${latestSupportedVersion}]`, changelogUrl, downloadUrl);
             yield promisified_properties_1.write(updatedProp, propFile);
-            yield github_1.commitAndPush(githubToken, forked.owner, forked.repo, propFile, rootDir);
+            yield github_1.commitAndPush(githubToken, forked.owner, forked.repo, path, rootDir);
             const skip = core.getInput('skip-creating-pull-request');
             if (!skip) {
                 // TODO create a PR, and post to the SQ forum
