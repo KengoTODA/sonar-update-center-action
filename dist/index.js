@@ -137,12 +137,15 @@ function createBranch(token, owner, repo, sha) {
     });
 }
 exports.createBranch = createBranch;
-function commit(token, owner, repo, path, rootDir, message, ref) {
+function commit(token, owner, repo, path, rootDir, message, refOrSha) {
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = github_1.getOctokit(token);
-        core_1.debug(`Finding sha of the parent commit with ref ${ref}...`);
-        const commit_sha = (yield octokit.git.getRef({ owner, repo, ref })).data.object
-            .sha;
+        let commit_sha = refOrSha;
+        if (refOrSha.startsWith('heads/')) {
+            core_1.debug(`Finding sha of the parent commit with ref ${refOrSha}...`);
+            commit_sha = (yield octokit.git.getRef({ owner, repo, ref: refOrSha })).data.object
+                .sha;
+        }
         const content = yield util_1.promisify(fs_1.readFile)(path_1.join(rootDir, path), {
             encoding: 'utf-8'
         });
@@ -256,7 +259,7 @@ function run() {
             const prop = yield promisified_properties_1.parseFile(propFile);
             yield promisified_properties_1.write(prop, propFile);
             const formattedHash = md5sum(propFile);
-            let ref = 'refs/heads/master';
+            let ref = 'heads/master';
             if (sourceHash !== formattedHash) {
                 console_1.debug('This is the first run for this sonarqube plugin, so commit the format change first to ease the PR review...');
                 ref = yield github_1.commit(githubToken, forked.owner, forked.repo, path, rootDir, `format the properties file for automation`, ref);

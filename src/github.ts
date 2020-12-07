@@ -149,12 +149,15 @@ export async function commit(
   path: string,
   rootDir: string,
   message: string,
-  ref: string
+  refOrSha: string
 ): Promise<string> {
   const octokit = getOctokit(token)
-  debug(`Finding sha of the parent commit with ref ${ref}...`)
-  const commit_sha = (await octokit.git.getRef({owner, repo, ref})).data.object
-    .sha
+  let commit_sha = refOrSha
+  if (refOrSha.startsWith('heads/')) {
+    debug(`Finding sha of the parent commit with ref ${refOrSha}...`)
+    commit_sha = (await octokit.git.getRef({owner, repo, ref: refOrSha})).data
+      .object.sha
+  }
   const content = await promisify(readFile)(join(rootDir, path), {
     encoding: 'utf-8'
   })
