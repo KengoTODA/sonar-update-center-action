@@ -15,7 +15,7 @@ jobs:
           npm ci
           npm run all
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TO_FORK }}
   test: # make sure the action works on a clean machine without building
     runs-on: ubuntu-latest
     steps:
@@ -29,7 +29,7 @@ jobs:
           changelog-url: https://github.com/spotbugs/sonar-findbugs/releases/tag/4.1.0
           download-url: https://repo.maven.apache.org/maven2/com/github/spotbugs/sonar-findbugs-plugin/4.1.0/sonar-findbugs-plugin-4.1.0.jar
           public-version: 4.1.0
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.PAT_TO_FORK }}
           skip-creating-pull-request: true
       - uses: actions/upload-artifact@v2
         with:
