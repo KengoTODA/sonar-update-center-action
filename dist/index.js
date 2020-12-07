@@ -226,6 +226,7 @@ const path_1 = __webpack_require__(5622);
 const crypto_1 = __webpack_require__(6417);
 const fs_1 = __webpack_require__(5747);
 const util_1 = __webpack_require__(1669);
+const console_1 = __webpack_require__(7082);
 function md5sum(path) {
     return __awaiter(this, void 0, void 0, function* () {
         return crypto_1.createHash('md5')
@@ -255,9 +256,9 @@ function run() {
             const prop = yield promisified_properties_1.parseFile(propFile);
             yield promisified_properties_1.write(prop, propFile);
             const formattedHash = md5sum(propFile);
-            let ref = 'heads/master';
+            let ref = 'refs/heads/master';
             if (sourceHash !== formattedHash) {
-                // this is the first usage, so commit the format change to ease PR review
+                console_1.debug('This is the first run for this sonarqube plugin, so commit the format change first to ease the PR review...');
                 ref = yield github_1.commit(githubToken, forked.owner, forked.repo, path, rootDir, `format the properties file for automation`, ref);
             }
             const mavenArtifactId = prop.get('defaults.mavenArtifactId');
@@ -9695,6 +9696,14 @@ module.exports = require("assert");;
 
 "use strict";
 module.exports = require("child_process");;
+
+/***/ }),
+
+/***/ 7082:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("console");;
 
 /***/ }),
 

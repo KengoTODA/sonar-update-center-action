@@ -6,6 +6,7 @@ import {join} from 'path'
 import {createHash} from 'crypto'
 import {readFile} from 'fs'
 import {promisify} from 'util'
+import {debug} from 'console'
 
 async function md5sum(path: string): Promise<string> {
   return createHash('md5')
@@ -38,9 +39,11 @@ async function run(): Promise<void> {
     const prop = await parseFile(propFile)
     await write(prop, propFile)
     const formattedHash = md5sum(propFile)
-    let ref = 'heads/master'
+    let ref = 'refs/heads/master'
     if (sourceHash !== formattedHash) {
-      // this is the first usage, so commit the format change to ease PR review
+      debug(
+        'This is the first run for this sonarqube plugin, so commit the format change first to ease the PR review...'
+      )
       ref = await commit(
         githubToken,
         forked.owner,
