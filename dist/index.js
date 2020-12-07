@@ -59,15 +59,14 @@ function checkoutSourceRepo(token, owner) {
         ], {
             cwd: rootDir
         });
-        const branch = generateRandomBranchName();
         yield exec_1.exec('git', ['fetch', 'sonarsource'], {
             cwd: rootDir
         });
         // TODO get the name of default branch dynamically
-        yield exec_1.exec('git', ['checkout', '-b', branch, 'sonarsource/master'], {
+        yield exec_1.exec('git', ['push', 'origin', 'sonarsource/master:master'], {
             cwd: rootDir
         });
-        return { rootDir, branch };
+        return rootDir;
     });
 }
 exports.checkoutSourceRepo = checkoutSourceRepo;
@@ -124,24 +123,41 @@ function fork(token) {
     });
 }
 exports.fork = fork;
-function commitAndPush(propFile, rootDir, branch = 'HEAD', mavenArtifactId, version) {
+function commitAndPush(token, owner, repo, path, rootDir) {
     return __awaiter(this, void 0, void 0, function* () {
-        yield exec_1.exec('git', ['add', propFile], {
-            cwd: rootDir
+        const octokit = github_1.getOctokit(token);
+        const ref = yield octokit.git.getRef({ owner, repo, ref: 'heads/master' });
+        const commit_sha = ref.data.object.sha;
+        const content = yield util_1.promisify(fs_1.readFile)(path_1.join(rootDir, path), {
+            encoding: 'utf-8'
         });
-        core_1.debug('Committing the updated properties file...');
-        yield exec_1.exec('git', [
-            'commit',
-            '-m',
-            `update properties file to release ${mavenArtifactId} ${version}`
-        ], {
-            cwd: rootDir
+        const blob = yield octokit.git.createBlob({
+            owner,
+            repo,
+            content,
+            encoding: 'utf-8'
         });
-        core_1.debug(`Committing finished. Pushing the ${branch} branch to GitHub...`);
-        yield exec_1.exec('git', ['push', 'origin', branch], {
-            cwd: rootDir
+        const tree = yield octokit.git.createTree({
+            owner,
+            repo,
+            base_tree: commit_sha,
+            tree: [
+                {
+                    path,
+                    mode: '100644',
+                    type: 'blob',
+                    sha: blob.data.sha,
+                    content
+                }
+            ]
         });
-        core_1.debug('Pushing finished.');
+        const branch = yield octokit.git.createRef({
+            owner,
+            repo,
+            ref: `heads/${generateRandomBranchName()}`,
+            sha: tree.data.sha
+        });
+        return branch.data.ref;
     });
 }
 exports.commitAndPush = commitAndPush;
@@ -193,9 +209,10 @@ function run() {
         try {
             const githubToken = core.getInput('github-token');
             const forked = yield github_1.fork(githubToken);
-            const { branch, rootDir } = yield github_1.checkoutSourceRepo(githubToken, forked.owner);
+            const rootDir = yield github_1.checkoutSourceRepo(githubToken, forked.owner);
             // TODO make sure that the input does not contains file-separator to avoid directory traversal
-            const propFile = path_1.join(rootDir, core.getInput('prop-file'));
+            const path = core.getInput('prop-file');
+            const propFile = path_1.join(rootDir, path);
             const description = core.getInput('description');
             const minimalSupportedVersion = core.getInput('minimal-supported-sq-version');
             const latestSupportedVersion = core.getInput('latest-supported-sq-version');
@@ -212,7 +229,7 @@ function run() {
             }
             const updatedProp = yield update_1.update(githubToken, prop, description, publicVersion, `[${minimalSupportedVersion},${latestSupportedVersion}]`, changelogUrl, downloadUrl);
             yield promisified_properties_1.write(updatedProp, propFile);
-            yield github_1.commitAndPush(propFile, rootDir, branch, mavenArtifactId, publicVersion);
+            yield github_1.commitAndPush(githubToken, forked.owner, forked.repo, propFile, rootDir);
             const skip = core.getInput('skip-creating-pull-request');
             if (!skip) {
                 // TODO create a PR, and post to the SQ forum

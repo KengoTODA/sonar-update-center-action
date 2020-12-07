@@ -2,7 +2,7 @@ import {debug} from '@actions/core'
 import {exec} from '@actions/exec'
 import {getOctokit} from '@actions/github'
 import {tmpdir} from 'os'
-import {mkdtemp} from 'fs'
+import {mkdtemp, readFile} from 'fs'
 import {promisify} from 'util'
 import {join} from 'path'
 
@@ -25,10 +25,7 @@ function generateRandomBranchName(): string {
 export async function checkoutSourceRepo(
   token: string,
   owner: string
-): Promise<{
-  rootDir: string
-  branch: string
-}> {
+): Promise<string> {
   const rootDir = await promisify(mkdtemp)(
     join(tmpdir(), 'sonar-update-center-action-')
   )
@@ -56,15 +53,14 @@ export async function checkoutSourceRepo(
       cwd: rootDir
     }
   )
-  const branch = generateRandomBranchName()
   await exec('git', ['fetch', 'sonarsource'], {
     cwd: rootDir
   })
   // TODO get the name of default branch dynamically
-  await exec('git', ['checkout', '-b', branch, 'sonarsource/master'], {
+  await exec('git', ['push', 'origin', 'sonarsource/master:master'], {
     cwd: rootDir
   })
-  return {rootDir, branch}
+  return rootDir
 }
 
 /**
@@ -130,30 +126,43 @@ export async function fork(
 }
 
 export async function commitAndPush(
-  propFile: string,
-  rootDir: string,
-  branch = 'HEAD',
-  mavenArtifactId: string,
-  version: string
-): Promise<void> {
-  await exec('git', ['add', propFile], {
-    cwd: rootDir
+  token: string,
+  owner: string,
+  repo: string,
+  path: string,
+  rootDir: string
+): Promise<string> {
+  const octokit = getOctokit(token)
+  const ref = await octokit.git.getRef({owner, repo, ref: 'heads/master'})
+  const commit_sha = ref.data.object.sha
+  const content = await promisify(readFile)(join(rootDir, path), {
+    encoding: 'utf-8'
   })
-  debug('Committing the updated properties file...')
-  await exec(
-    'git',
-    [
-      'commit',
-      '-m',
-      `update properties file to release ${mavenArtifactId} ${version}`
-    ],
-    {
-      cwd: rootDir
-    }
-  )
-  debug(`Committing finished. Pushing the ${branch} branch to GitHub...`)
-  await exec('git', ['push', 'origin', branch], {
-    cwd: rootDir
+  const blob = await octokit.git.createBlob({
+    owner,
+    repo,
+    content,
+    encoding: 'utf-8'
   })
-  debug('Pushing finished.')
+  const tree = await octokit.git.createTree({
+    owner,
+    repo,
+    base_tree: commit_sha,
+    tree: [
+      {
+        path,
+        mode: '100644',
+        type: 'blob',
+        sha: blob.data.sha,
+        content
+      }
+    ]
+  })
+  const branch = await octokit.git.createRef({
+    owner,
+    repo,
+    ref: `heads/${generateRandomBranchName()}`,
+    sha: tree.data.sha
+  })
+  return branch.data.ref
 }

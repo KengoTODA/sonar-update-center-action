@@ -8,12 +8,10 @@ async function run(): Promise<void> {
   try {
     const githubToken = core.getInput('github-token')
     const forked = await fork(githubToken)
-    const {branch, rootDir} = await checkoutSourceRepo(
-      githubToken,
-      forked.owner
-    )
+    const rootDir = await checkoutSourceRepo(githubToken, forked.owner)
     // TODO make sure that the input does not contains file-separator to avoid directory traversal
-    const propFile = join(rootDir, core.getInput('prop-file'))
+    const path = core.getInput('prop-file')
+    const propFile = join(rootDir, path)
 
     const description = core.getInput('description')
     const minimalSupportedVersion = core.getInput(
@@ -47,11 +45,11 @@ async function run(): Promise<void> {
     await write(updatedProp, propFile)
 
     await commitAndPush(
+      githubToken,
+      forked.owner,
+      forked.repo,
       propFile,
-      rootDir,
-      branch,
-      mavenArtifactId,
-      publicVersion
+      rootDir
     )
     const skip = core.getInput('skip-creating-pull-request')
     if (!skip) {
