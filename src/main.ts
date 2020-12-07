@@ -44,7 +44,15 @@ async function run(): Promise<void> {
     )
     await write(updatedProp, propFile)
 
-    await commitAndPush(githubToken, forked.owner, forked.repo, path, rootDir)
+    await commitAndPush(
+      githubToken,
+      forked.owner,
+      forked.repo,
+      path,
+      rootDir,
+      mavenArtifactId,
+      publicVersion
+    )
     const skip = core.getInput('skip-creating-pull-request')
     if (!skip) {
       // TODO create a PR, and post to the SQ forum

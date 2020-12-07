@@ -123,7 +123,7 @@ function fork(token) {
     });
 }
 exports.fork = fork;
-function commitAndPush(token, owner, repo, path, rootDir) {
+function commitAndPush(token, owner, repo, path, rootDir, mavenArtifactId, version) {
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = github_1.getOctokit(token);
         const ref = yield octokit.git.getRef({ owner, repo, ref: 'heads/master' });
@@ -150,11 +150,14 @@ function commitAndPush(token, owner, repo, path, rootDir) {
                 }
             ]
         });
+        const commit = yield octokit.git.createCommit({
+            owner, repo, message: `update properties file to release ${mavenArtifactId} ${version}`, tree: tree.data.sha, parents: [commit_sha]
+        });
         const branch = yield octokit.git.createRef({
             owner,
             repo,
             ref: `refs/heads/${generateRandomBranchName()}`,
-            sha: tree.data.sha
+            sha: commit.data.sha
         });
         return branch.data.ref;
     });
@@ -228,7 +231,7 @@ function run() {
             }
             const updatedProp = yield update_1.update(githubToken, prop, description, publicVersion, `[${minimalSupportedVersion},${latestSupportedVersion}]`, changelogUrl, downloadUrl);
             yield promisified_properties_1.write(updatedProp, propFile);
-            yield github_1.commitAndPush(githubToken, forked.owner, forked.repo, path, rootDir);
+            yield github_1.commitAndPush(githubToken, forked.owner, forked.repo, path, rootDir, mavenArtifactId, publicVersion);
             const skip = core.getInput('skip-creating-pull-request');
             if (!skip) {
                 // TODO create a PR, and post to the SQ forum

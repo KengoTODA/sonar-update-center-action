@@ -130,7 +130,9 @@ export async function commitAndPush(
   owner: string,
   repo: string,
   path: string,
-  rootDir: string
+  rootDir: string,
+  mavenArtifactId: string,
+  version: string
 ): Promise<string> {
   const octokit = getOctokit(token)
   const ref = await octokit.git.getRef({owner, repo, ref: 'heads/master'})
@@ -157,11 +159,18 @@ export async function commitAndPush(
       }
     ]
   })
+  const commit = await octokit.git.createCommit({
+    owner,
+    repo,
+    message: `update properties file to release ${mavenArtifactId} ${version}`,
+    tree: tree.data.sha,
+    parents: [commit_sha]
+  })
   const branch = await octokit.git.createRef({
     owner,
     repo,
     ref: `refs/heads/${generateRandomBranchName()}`,
-    sha: tree.data.sha
+    sha: commit.data.sha
   })
   return branch.data.ref
 }
