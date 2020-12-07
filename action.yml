@@ -29,6 +29,9 @@ inputs:
   skip-creating-pull-request:
     description: 'For debug; Skip the process to create a pull request'
     default: false
+outputs:
+  prop-file:
+    description: 'The full path of the updated properties file in local filesystem'
 runs:
   using: 'node12'
   main: 'dist/index.js'

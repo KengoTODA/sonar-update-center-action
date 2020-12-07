@@ -12,6 +12,7 @@ async function run(): Promise<void> {
       githubToken,
       forked.owner
     )
+    // TODO make sure that the input does not contains file-separator to avoid directory traversal
     const propFile = join(rootDir, core.getInput('prop-file'))
 
     const description = core.getInput('description')
@@ -56,6 +57,7 @@ async function run(): Promise<void> {
     if (!skip) {
       // TODO create a PR, and post to the SQ forum
     }
+    core.setOutput('prop-file', propFile)
   } catch (error) {
     core.setFailed(error.message)
   }

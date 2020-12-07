@@ -191,6 +191,7 @@ function run() {
             const githubToken = core.getInput('github-token');
             const forked = yield github_1.fork(githubToken);
             const { branch, rootDir } = yield github_1.checkoutSourceRepo(githubToken, forked.owner);
+            // TODO make sure that the input does not contains file-separator to avoid directory traversal
             const propFile = path_1.join(rootDir, core.getInput('prop-file'));
             const description = core.getInput('description');
             const minimalSupportedVersion = core.getInput('minimal-supported-sq-version');
@@ -213,6 +214,7 @@ function run() {
             if (!skip) {
                 // TODO create a PR, and post to the SQ forum
             }
+            core.setOutput('prop-file', propFile);
         }
         catch (error) {
             core.setFailed(error.message);
