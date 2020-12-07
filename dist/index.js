@@ -153,7 +153,7 @@ function commitAndPush(token, owner, repo, path, rootDir) {
         const branch = yield octokit.git.createRef({
             owner,
             repo,
-            ref: `heads/${generateRandomBranchName()}`,
+            ref: `refs/heads/${generateRandomBranchName()}`,
             sha: tree.data.sha
         });
         return branch.data.ref;

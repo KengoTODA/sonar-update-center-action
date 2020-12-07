@@ -160,7 +160,7 @@ export async function commitAndPush(
   const branch = await octokit.git.createRef({
     owner,
     repo,
-    ref: `heads/${generateRandomBranchName()}`,
+    ref: `refs/heads/${generateRandomBranchName()}`,
     sha: tree.data.sha
   })
   return branch.data.ref
