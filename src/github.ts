@@ -153,8 +153,7 @@ export async function commitAndPush(
         path,
         mode: '100644',
         type: 'blob',
-        sha: blob.data.sha,
-        content
+        sha: blob.data.sha
       }
     ]
   })

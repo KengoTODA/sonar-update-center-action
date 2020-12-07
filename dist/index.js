@@ -146,8 +146,7 @@ function commitAndPush(token, owner, repo, path, rootDir) {
                     path,
                     mode: '100644',
                     type: 'blob',
-                    sha: blob.data.sha,
-                    content
+                    sha: blob.data.sha
                 }
             ]
         });
