@@ -1,7 +1,7 @@
 {
   "name": "sonar-update-center-action",
   "version": "0.0.0",
-  "description": "The GitHub Action updating prop file to release SonarQube plugin",
+  "description": "The GitHub Action for SonarQube plugin authors to automate the last mile in SonarQube plugin release procedure",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",

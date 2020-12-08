@@ -10,14 +10,14 @@ export async function update(
   changelogUrl: string,
   downloadUrl: string
 ): Promise<Map<string, string>> {
-  const copiedProp = new Map(prop)
-  const prevPublicVersions = copiedProp.get('publicVersions')
-  copiedProp.set('publicVersions', publicVersion)
+  const prevPublicVersions = prop.get('publicVersions')
   if (!prevPublicVersions) {
-    throw new Error('prevPublicVersions should exist in the properties file')
+    throw new Error('publicVersions should exist in the properties file')
   } else if (prevPublicVersions.includes(',')) {
-    throw new Error('prevPublicVersions should contain single version')
+    throw new Error('publicVersions should contain single version')
   }
+  const copiedProp = new Map(prop)
+  copiedProp.set('publicVersions', publicVersion)
 
   const prevArchivedVersions = copiedProp.get('archivedVersions')
   if (prevArchivedVersions) {

@@ -1,103 +1,56 @@
-<p align="center">
-  <a href="https://github.com/actions/typescript-action/actions"><img alt="typescript-action status" src="https://github.com/actions/typescript-action/workflows/build-test/badge.svg"></a>
-</p>
+# Automate making the sonar-update-center-properties file with GitHub Actions
 
-# Create a JavaScript Action using TypeScript
+The GitHub Action for SonarQube plugin authors to automate the last mile in SonarQube plugin release procedure.
 
-Use this template to bootstrap the creation of a TypeScript action.:rocket:
+<a href="https://github.com/KengoTODA/sonar-update-center-action/actions"><img alt="sonar-update-center-action status" src="https://github.com/KengoTODA/sonar-update-center-action/workflows/build-test/badge.svg"></a>
 
-This template includes compilation support, tests, a validation workflow, publishing, and versioning guidance.  
+This [release procedure](https://docs.sonarqube.org/latest/extend/deploying-to-marketplace/) contains three steps:
 
-If you are new, there's also a simpler introduction.  See the [Hello World JavaScript Action](https://github.com/actions/hello-world-javascript-action)
+1. Publishing the `.jar` file with metadata
+2. Announcing new release at the [Community Forum](https://community.sonarsource.com/c/plugins)
+3. Creating a PR on [sonar-update-center-properties repo](https://github.com/SonarSource/sonar-update-center-properties)
 
-## Create an action from this template
+The 1st part is already automated with build tool plugins such as [sonar-packaging-maven-plugin](https://github.com/SonarSource/sonar-packaging-maven-plugin) and [gradle-sonar-packaging-plugin](https://github.com/iwarapter/gradle-sonar-packaging-plugin). This GitHub Action will automate the 2nd and 3rd steps.
 
-Click the `Use this Template` and provide the new repo details for your action
+## Supported Feature
 
-## Code in Main
+This action is still in beta, so provides limited features:
 
-Install the dependencies  
-```bash
-$ npm install
+- [x] Fork the [sonar-update-center-properties repo](https://github.com/SonarSource/sonar-update-center-properties) into your GitHub account
+- [x] Sync the default branch from the repo in SonarSource organization to the repo in your GitHub account
+- [x] Update the properties file, and push the topic branch to the repo in your GitHub account
+- [ ] Post to the [Community Forum](https://community.sonarsource.com/c/plugins)
+- [ ] Send a PR to the [sonar-update-center-properties repo](https://github.com/SonarSource/sonar-update-center-properties)
+
+It means that, you need to create a PR based on the topic branch pushed by this GitHub Action.
+
+## How to configure
+
+In your workflow file under `.github/workdlows`, add a step using this plugin:
+
+```yml
+      # Assume that ${{ github.event.release.tag_name }} follows semver2 and has no 'v' prefix
+      # e.g. 1.0.0, 2.3.4
+      - uses: KengoTODA/sonar-update-center-action@main
+        with:
+          prop-file: findbugs.properties # the name of your target file
+          description: Use SpotBugs 4.2.0, sb-contrib 7.4.7, and findsecbugs 1.11.0 # The description of your release
+          minimal-supported-sq-version: 7.9 # The minimal supported SonarQube version
+          latest-supported-sq-version: LATEST # The latest supported SonarQube version, default is 'LATEST'
+          changelog-url: https://github.com/spotbugs/sonar-findbugs/releases/tag/${{ github.event.release.tag_name }} # The URL of changelog for your release
+          download-url: https://repo.maven.apache.org/maven2/com/github/spotbugs/sonar-findbugs-plugin/${{ github.event.release.tag_name }}/sonar-findbugs-plugin-${{ github.event.release.tag_name }}.jar # The URL to download your plugin
+          public-version: ${{ github.event.release.tag_name }} # The version to publish
+          github-token: ${{ secrets.PAT_TO_FORK }} # The Personal Access Token
+          skip-creating-pull-request: true # Skip creating a PR (reserved for future release)
+          skip-announcing: true # Skip accouncing at the Community Forum (reserved for future release)
 ```
 
-Build the typescript and package it for distribution
-```bash
-$ npm run build && npm run package
-```
+## Which kind of PAT (Personal Access Token) you need to use
 
-Run the tests :heavy_check_mark:  
-```bash
-$ npm test
+To operate the following operation, you need to [create a personal access token](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token) with the `public_repo` permission:
 
- PASS  ./index.test.js
-  ✓ throws invalid number (3ms)
-  ✓ wait 500 ms (504ms)
-  ✓ test runs (95ms)
-
-...
-```
-
-## Change action.yml
-
-The action.yml contains defines the inputs and output for your action.
-
-Update the action.yml with your name, description, inputs and outputs for your action.
-
-See the [documentation](https://help.github.com/en/articles/metadata-syntax-for-github-actions)
-
-## Change the Code
-
-Most toolkit and CI/CD operations involve async operations so the action is run in an async function.
-
-```javascript
-import * as core from '@actions/core';
-...
-
-async function run() {
-  try { 
-      ...
-  } 
-  catch (error) {
-    core.setFailed(error.message);
-  }
-}
-
-run()
-```
-
-See the [toolkit documentation](https://github.com/actions/toolkit/blob/master/README.md#packages) for the various packages.
-
-## Publish to a distribution branch
-
-Actions are run from GitHub repos so we will checkin the packed dist folder. 
-
-Then run [ncc](https://github.com/zeit/ncc) and push the results:
-```bash
-$ npm run package
-$ git add dist
-$ git commit -a -m "prod dependencies"
-$ git push origin releases/v1
-```
-
-Note: We recommend using the `--license` option for ncc, which will create a license file for all of the production node modules used in your project.
-
-Your action is now published! :rocket: 
-
-See the [versioning documentation](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md)
-
-## Validate
-
-You can now validate the action by referencing `./` in a workflow in your repo (see [test.yml](.github/workflows/test.yml))
-
-```yaml
-uses: ./
-with:
-  milliseconds: 1000
-```
-
-See the [actions tab](https://github.com/actions/typescript-action/actions) for runs of this action! :rocket:
-
-## Usage:
-
-After testing you can [create a v1 tag](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md) to reference the stable and latest V1 action
+1. Fork the [sonar-update-center-properties repo](https://github.com/SonarSource/sonar-update-center-properties) into your GitHub account
+2. Pull the default branch from [sonar-update-center-properties repo](https://github.com/SonarSource/sonar-update-center-properties) and push it to the repo in your GitHub account
+3. Commit necessary changes
+4. Push the topic branch to the repo in your GitHub account
+5. Create a PR (in future release)

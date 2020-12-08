@@ -240,20 +240,24 @@ function md5sum(path) {
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const githubToken = core.getInput('github-token');
+            const githubToken = core.getInput('github-token', { required: true });
             const forked = yield github_1.fork(githubToken);
             const rootDir = yield github_1.checkoutSourceRepo(githubToken, forked.owner);
-            const path = core.getInput('prop-file');
+            const path = core.getInput('prop-file', {
+                required: true
+            });
             if (path.includes('/') || path.includes('\\')) {
                 throw new Error('prop-file input should be file name without "/" nor "\\"');
             }
             const propFile = path_1.join(rootDir, path);
-            const description = core.getInput('description');
-            const minimalSupportedVersion = core.getInput('minimal-supported-sq-version');
+            const description = core.getInput('description', {
+                required: true
+            });
+            const minimalSupportedVersion = core.getInput('minimal-supported-sq-version', { required: true });
             const latestSupportedVersion = core.getInput('latest-supported-sq-version');
-            const changelogUrl = core.getInput('changelog-url');
-            const downloadUrl = core.getInput('download-url');
-            const publicVersion = core.getInput('public-version');
+            const changelogUrl = core.getInput('changelog-url', { required: true });
+            const downloadUrl = core.getInput('download-url', { required: true });
+            const publicVersion = core.getInput('public-version', { required: true });
             if (!publicVersion || publicVersion.includes(',')) {
                 throw new Error(`Unsupproted publicVersion found: ${publicVersion}`);
             }
@@ -403,15 +407,15 @@ const core = __importStar(__webpack_require__(2186));
 const sonarqube_1 = __webpack_require__(2635);
 function update(token, prop, description, publicVersion, sqVersions, changelogUrl, downloadUrl) {
     return __awaiter(this, void 0, void 0, function* () {
-        const copiedProp = new Map(prop);
-        const prevPublicVersions = copiedProp.get('publicVersions');
-        copiedProp.set('publicVersions', publicVersion);
+        const prevPublicVersions = prop.get('publicVersions');
         if (!prevPublicVersions) {
-            throw new Error('prevPublicVersions should exist in the properties file');
+            throw new Error('publicVersions should exist in the properties file');
         }
         else if (prevPublicVersions.includes(',')) {
-            throw new Error('prevPublicVersions should contain single version');
+            throw new Error('publicVersions should contain single version');
         }
+        const copiedProp = new Map(prop);
+        copiedProp.set('publicVersions', publicVersion);
         const prevArchivedVersions = copiedProp.get('archivedVersions');
         if (prevArchivedVersions) {
             copiedProp.set('archivedVersions', `${prevArchivedVersions},${prevPublicVersions}`);

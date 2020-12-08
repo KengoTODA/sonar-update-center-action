@@ -16,10 +16,12 @@ async function md5sum(path: string): Promise<string> {
 
 async function run(): Promise<void> {
   try {
-    const githubToken = core.getInput('github-token')
+    const githubToken = core.getInput('github-token', {required: true})
     const forked = await fork(githubToken)
     const rootDir = await checkoutSourceRepo(githubToken, forked.owner)
-    const path = core.getInput('prop-file')
+    const path = core.getInput('prop-file', {
+      required: true
+    })
     if (path.includes('/') || path.includes('\\')) {
       throw new Error(
         'prop-file input should be file name without "/" nor "\\"'
@@ -27,14 +29,17 @@ async function run(): Promise<void> {
     }
     const propFile = join(rootDir, path)
 
-    const description = core.getInput('description')
+    const description = core.getInput('description', {
+      required: true
+    })
     const minimalSupportedVersion = core.getInput(
-      'minimal-supported-sq-version'
+      'minimal-supported-sq-version',
+      {required: true}
     )
     const latestSupportedVersion = core.getInput('latest-supported-sq-version')
-    const changelogUrl = core.getInput('changelog-url')
-    const downloadUrl = core.getInput('download-url')
-    const publicVersion = core.getInput('public-version')
+    const changelogUrl = core.getInput('changelog-url', {required: true})
+    const downloadUrl = core.getInput('download-url', {required: true})
+    const publicVersion = core.getInput('public-version', {required: true})
     if (!publicVersion || publicVersion.includes(',')) {
       throw new Error(`Unsupproted publicVersion found: ${publicVersion}`)
     }
