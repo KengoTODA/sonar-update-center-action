@@ -47,7 +47,7 @@ In your workflow file under `.github/workdlows`, add a step using this plugin:
 
 ## Which kind of PAT (Personal Access Token) you need to use
 
-To operate the following operation, you need to [create a personal access token](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token) with the `public_repo` permission:
+You need to [create a personal access token](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token) with the `public_repo` permission, to operate the following operations:
 
 1. Fork the [sonar-update-center-properties repo](https://github.com/SonarSource/sonar-update-center-properties) into your GitHub account
 2. Pull the default branch from [sonar-update-center-properties repo](https://github.com/SonarSource/sonar-update-center-properties) and push it to the repo in your GitHub account
