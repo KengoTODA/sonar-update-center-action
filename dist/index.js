@@ -143,8 +143,8 @@ function commit(token, owner, repo, path, rootDir, message, refOrSha) {
         let commit_sha = refOrSha;
         if (refOrSha.startsWith('heads/')) {
             core_1.debug(`Finding sha of the parent commit with ref ${refOrSha}...`);
-            commit_sha = (yield octokit.git.getRef({ owner, repo, ref: refOrSha })).data.object
-                .sha;
+            commit_sha = (yield octokit.git.getRef({ owner, repo, ref: refOrSha })).data
+                .object.sha;
         }
         const content = yield util_1.promisify(fs_1.readFile)(path_1.join(rootDir, path), {
             encoding: 'utf-8'
@@ -243,8 +243,10 @@ function run() {
             const githubToken = core.getInput('github-token');
             const forked = yield github_1.fork(githubToken);
             const rootDir = yield github_1.checkoutSourceRepo(githubToken, forked.owner);
-            // TODO make sure that the input does not contains file-separator to avoid directory traversal
             const path = core.getInput('prop-file');
+            if (path.includes('/') || path.includes('\\')) {
+                throw new Error('prop-file input should be file name without "/" nor "\\"');
+            }
             const propFile = path_1.join(rootDir, path);
             const description = core.getInput('description');
             const minimalSupportedVersion = core.getInput('minimal-supported-sq-version');

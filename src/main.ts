@@ -19,8 +19,12 @@ async function run(): Promise<void> {
     const githubToken = core.getInput('github-token')
     const forked = await fork(githubToken)
     const rootDir = await checkoutSourceRepo(githubToken, forked.owner)
-    // TODO make sure that the input does not contains file-separator to avoid directory traversal
     const path = core.getInput('prop-file')
+    if (path.includes('/') || path.includes('\\')) {
+      throw new Error(
+        'prop-file input should be file name without "/" nor "\\"'
+      )
+    }
     const propFile = join(rootDir, path)
 
     const description = core.getInput('description')
