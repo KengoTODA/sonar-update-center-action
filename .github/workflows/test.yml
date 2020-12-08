@@ -12,13 +12,26 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: |
-          npm install
-      - run: |
+          npm ci
           npm run all
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TO_FORK }}
   test: # make sure the action works on a clean machine without building
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: ./
+        id: integrated-test
         with:
-          milliseconds: 1000
+          prop-file: findbugs.properties
+          description: Use SpotBugs 4.2.0, sb-contrib 7.4.7, and findsecbugs 1.11.0
+          minimal-supported-sq-version: 7.9
+          changelog-url: https://github.com/spotbugs/sonar-findbugs/releases/tag/4.1.0
+          download-url: https://repo.maven.apache.org/maven2/com/github/spotbugs/sonar-findbugs-plugin/4.1.0/sonar-findbugs-plugin-4.1.0.jar
+          public-version: 4.1.0
+          github-token: ${{ secrets.PAT_TO_FORK }}
+          skip-creating-pull-request: true
+      - uses: actions/upload-artifact@v2
+        with:
+          name: updated-properties-file
+          path: ${{ steps.integrated-test.outputs.prop-file }}
