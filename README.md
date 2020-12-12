@@ -4,7 +4,7 @@ The GitHub Action for SonarQube plugin authors to automate the last mile in Sona
 
 <a href="https://github.com/KengoTODA/sonar-update-center-action/actions"><img alt="sonar-update-center-action status" src="https://github.com/KengoTODA/sonar-update-center-action/workflows/build-test/badge.svg"></a>
 
-This [release procedure](https://docs.sonarqube.org/latest/extend/deploying-to-marketplace/) contains three steps:
+This [release procedure](https://community.sonarsource.com/t/deploying-to-the-marketplace/35236) contains three steps:
 
 1. Publishing the `.jar` file with metadata
 2. Announcing new release at the [Community Forum](https://community.sonarsource.com/c/plugins)
