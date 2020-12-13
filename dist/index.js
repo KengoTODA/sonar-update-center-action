@@ -17,7 +17,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.commit = exports.createBranch = exports.fork = exports.checkoutSourceRepo = void 0;
+exports.createPullRequest = exports.commit = exports.createBranch = exports.fork = exports.checkoutSourceRepo = void 0;
 const core_1 = __webpack_require__(2186);
 const exec_1 = __webpack_require__(1514);
 const github_1 = __webpack_require__(5438);
@@ -134,6 +134,7 @@ function createBranch(token, owner, repo, sha) {
             ref: `refs/heads/${branch}`,
             sha
         });
+        return branch;
     });
 }
 exports.createBranch = createBranch;
@@ -183,6 +184,28 @@ function commit(token, owner, repo, path, rootDir, message, refOrSha) {
     });
 }
 exports.commit = commit;
+function createPullRequest(token, owner, branch, releaseName, changelogUrl) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const octokit = github_1.getOctokit(token);
+        const title = `Release ${releaseName}`;
+        const body = `We've released [${releaseName}](${changelogUrl}), please add it to the marketplace.
+  I'll post to the forum and add its URL here later.
+
+  Thanks in advance!`;
+        const result = yield octokit.pulls.create({
+            owner: 'SonarSource',
+            repo: 'sonar-update-center-properties',
+            title,
+            body,
+            head: `${owner}:${branch}`,
+            base: 'master',
+            maintainer_can_modify: true,
+            draft: true
+        });
+        return result.data.url;
+    });
+}
+exports.createPullRequest = createPullRequest;
 
 
 /***/ }),
@@ -277,12 +300,13 @@ function run() {
             const updatedProp = yield update_1.update(githubToken, prop, description, publicVersion, `[${minimalSupportedVersion},${latestSupportedVersion}]`, changelogUrl, downloadUrl);
             yield promisified_properties_1.write(updatedProp, propFile);
             ref = yield github_1.commit(githubToken, forked.owner, forked.repo, path, rootDir, `update properties file to release ${mavenArtifactId} ${publicVersion}`, ref);
-            github_1.createBranch(githubToken, forked.owner, forked.repo, ref);
+            const branch = yield github_1.createBranch(githubToken, forked.owner, forked.repo, ref);
+            core.setOutput('prop-file', propFile);
             const skip = core.getInput('skip-creating-pull-request');
             if (!skip) {
-                // TODO create a PR, and post to the SQ forum
+                const url = yield github_1.createPullRequest(githubToken, forked.owner, branch, `${mavenArtifactId} ${publicVersion}`, changelogUrl);
+                core.info(`PR has been created, visit ${url} to confirm.`);
             }
-            core.setOutput('prop-file', propFile);
         }
         catch (error) {
             core.setFailed(error.message);

@@ -1,7 +1,13 @@
 import * as core from '@actions/core'
 import {parseFile, write} from 'promisified-properties'
 import {update} from './update'
-import {checkoutSourceRepo, commit, createBranch, fork} from './github'
+import {
+  checkoutSourceRepo,
+  commit,
+  createBranch,
+  createPullRequest,
+  fork
+} from './github'
 import {join} from 'path'
 import {createHash} from 'crypto'
 import {readFile} from 'fs'
@@ -90,12 +96,25 @@ async function run(): Promise<void> {
       `update properties file to release ${mavenArtifactId} ${publicVersion}`,
       ref
     )
-    createBranch(githubToken, forked.owner, forked.repo, ref)
+    const branch = await createBranch(
+      githubToken,
+      forked.owner,
+      forked.repo,
+      ref
+    )
+    core.setOutput('prop-file', propFile)
+
     const skip = core.getInput('skip-creating-pull-request')
     if (!skip) {
-      // TODO create a PR, and post to the SQ forum
+      const url = await createPullRequest(
+        githubToken,
+        forked.owner,
+        branch,
+        `${mavenArtifactId} ${publicVersion}`,
+        changelogUrl
+      )
+      core.info(`PR has been created, visit ${url} to confirm.`)
     }
-    core.setOutput('prop-file', propFile)
   } catch (error) {
     core.setFailed(error.message)
   }

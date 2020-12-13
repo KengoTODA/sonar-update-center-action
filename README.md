@@ -19,8 +19,8 @@ This action is still in beta, so provides limited features:
 - [x] Fork the [sonar-update-center-properties repo](https://github.com/SonarSource/sonar-update-center-properties) into your GitHub account
 - [x] Sync the default branch from the repo in SonarSource organization to the repo in your GitHub account
 - [x] Update the properties file, and push the topic branch to the repo in your GitHub account
+- [x] Send a PR to the [sonar-update-center-properties repo](https://github.com/SonarSource/sonar-update-center-properties)
 - [ ] Post to the [Community Forum](https://community.sonarsource.com/c/plugins)
-- [ ] Send a PR to the [sonar-update-center-properties repo](https://github.com/SonarSource/sonar-update-center-properties)
 
 It means that, you need to create a PR based on the topic branch pushed by this GitHub Action.
 
@@ -41,7 +41,7 @@ In your workflow file under `.github/workdlows`, add a step using this plugin:
           download-url: https://repo.maven.apache.org/maven2/com/github/spotbugs/sonar-findbugs-plugin/${{ github.event.release.tag_name }}/sonar-findbugs-plugin-${{ github.event.release.tag_name }}.jar # The URL to download your plugin
           public-version: ${{ github.event.release.tag_name }} # The version to publish
           github-token: ${{ secrets.PAT_TO_FORK }} # The Personal Access Token
-          skip-creating-pull-request: true # Skip creating a PR (reserved for future release)
+          skip-creating-pull-request: true # Skip creating a PR
           skip-announcing: true # Skip accouncing at the Community Forum (reserved for future release)
 ```
 

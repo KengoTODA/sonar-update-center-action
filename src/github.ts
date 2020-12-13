@@ -130,7 +130,7 @@ export async function createBranch(
   owner: string,
   repo: string,
   sha: string
-): Promise<void> {
+): Promise<string> {
   const branch = generateRandomBranchName()
   debug(`creating a branch refs/heads/${branch} with specified sha: ${sha}`)
   const octokit = getOctokit(token)
@@ -140,6 +140,7 @@ export async function createBranch(
     ref: `refs/heads/${branch}`,
     sha
   })
+  return branch
 }
 
 export async function commit(
@@ -196,4 +197,30 @@ export async function commit(
   ).data.sha
   debug(`Created a commit as ${newCommitSha}`)
   return newCommitSha
+}
+
+export async function createPullRequest(
+  token: string,
+  owner: string,
+  branch: string,
+  releaseName: string,
+  changelogUrl: string
+): Promise<string> {
+  const octokit = getOctokit(token)
+  const title = `Release ${releaseName}`
+  const body = `We've released [${releaseName}](${changelogUrl}), please add it to the marketplace.
+  I'll post to the forum and add its URL here later.
+
+  Thanks in advance!`
+  const result = await octokit.pulls.create({
+    owner: 'SonarSource',
+    repo: 'sonar-update-center-properties',
+    title,
+    body,
+    head: `${owner}:${branch}`,
+    base: 'master',
+    maintainer_can_modify: true,
+    draft: true
+  })
+  return result.data.url
 }
