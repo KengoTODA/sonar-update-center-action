@@ -30,7 +30,7 @@ const server = createServer((req, res) => {
 })
 function buildUrl(port: number, publicKey: string): string {
   const redirectUrl = `http://localhost:${port}/callback`
-  const url = new URL('https://community.sonarsource.com//user-api-key/new')
+  const url = new URL('https://meta.discourse.org/user-api-key/new')
 
   url.searchParams.append('auth_redirect', redirectUrl)
   url.searchParams.append('application_name', 'sonar-update-center-action')
@@ -38,14 +38,21 @@ function buildUrl(port: number, publicKey: string): string {
   url.searchParams.append('scopes', 'write')
   url.searchParams.append('public_key', publicKey)
   url.searchParams.append('nonce', '1')
+  console.debug(`redirect URL is ${url.href}`)
   return url.href
 }
+
 server.listen(0, async () => {
   const addressInfo = server.address()
   if (addressInfo === null || typeof addressInfo === 'string') {
     throw new Error(`Unexpected address info: ${addressInfo}`)
   } else {
     const port = addressInfo.port
-    await open(buildUrl(port, publicKey))
+    const url = buildUrl(port, publicKey)
+    try {
+      await open(url)
+    } catch(e) {
+      console.error(`Failed to launch browser. %s`, e.stack)
+    }
   }
 })

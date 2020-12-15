@@ -38,18 +38,20 @@ const server = http_1.createServer((req, res) => {
     }
     else {
         console.log(`encoded key is ${encodedKey}`);
+        // TODO convert string to Buffer
         //  privateDecrypt(privateKey, encodedKey)
     }
 });
 function buildUrl(port, publicKey) {
     const redirectUrl = `http://localhost:${port}/callback`;
-    const url = new URL('https://community.sonarsource.com//user-api-key/new');
+    const url = new URL('https://meta.discourse.org/user-api-key/new');
     url.searchParams.append('auth_redirect', redirectUrl);
     url.searchParams.append('application_name', 'sonar-update-center-action');
     url.searchParams.append('client_id', os_1.hostname());
     url.searchParams.append('scopes', 'write');
     url.searchParams.append('public_key', publicKey);
     url.searchParams.append('nonce', '1');
+    console.log(`redirect URL is ${url.href}`);
     return url.href;
 }
 server.listen(0, () => __awaiter(void 0, void 0, void 0, function* () {
@@ -59,6 +61,12 @@ server.listen(0, () => __awaiter(void 0, void 0, void 0, function* () {
     }
     else {
         const port = addressInfo.port;
-        yield open_1.default(buildUrl(port, publicKey));
+        const url = buildUrl(port, publicKey);
+        try {
+            yield open_1.default(url);
+        }
+        catch (e) {
+            console.error(`Failed to launch browser. %s`, e.stack);
+        }
     }
 }));
