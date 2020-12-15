@@ -41,6 +41,7 @@ In your workflow file under `.github/workdlows`, add a step using this plugin:
           download-url: https://repo.maven.apache.org/maven2/com/github/spotbugs/sonar-findbugs-plugin/${{ github.event.release.tag_name }}/sonar-findbugs-plugin-${{ github.event.release.tag_name }}.jar # The URL to download your plugin
           public-version: ${{ github.event.release.tag_name }} # The version to publish
           github-token: ${{ secrets.PAT_TO_FORK }} # The Personal Access Token
+          discourse-token: ${{ secrets.DISCOURSE_TOKEN }} # The API token for https://community.sonarsource.com/
           skip-creating-pull-request: true # Skip creating a PR
           skip-announcing: true # Skip accouncing at the Community Forum (reserved for future release)
 ```

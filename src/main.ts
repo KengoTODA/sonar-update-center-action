@@ -23,6 +23,7 @@ async function md5sum(path: string): Promise<string> {
 async function run(): Promise<void> {
   try {
     const githubToken = core.getInput('github-token', {required: true})
+    const discourseToken = core.getInput('discourse-token')
     const forked = await fork(githubToken)
     const rootDir = await checkoutSourceRepo(githubToken, forked.owner)
     const path = core.getInput('prop-file', {
