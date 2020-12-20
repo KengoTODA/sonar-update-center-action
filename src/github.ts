@@ -208,7 +208,9 @@ export async function createPullRequest(
 ): Promise<string> {
   const octokit = getOctokit(token)
   const title = `Release ${releaseName}`
-  const body = `We've released [${releaseName}](${changelogUrl}), please add it to the marketplace.
+  const body = `We've released [${releaseName}](${encodeURI(
+    changelogUrl
+  )}), please add it to the marketplace.
   I'll post to the forum and add its URL here later.
 
   Thanks in advance!`
