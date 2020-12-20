@@ -1,14 +1,23 @@
+import nock from 'nock'
 import {update} from '../src/update'
+import releases from './fixtures/sonarqube-releases.json'
 
 const token = process.env.GITHUB_TOKEN
 if (!token) {
   throw new Error('No GITHUB_TOKEN env var found')
 }
 
+afterEach(() => {
+  nock.cleanAll()
+})
+
 test('update() replaces the LATEST in the previous version', async () => {
   const prev = new Map<string, string>()
   prev.set('publicVersions', '1.0.0')
   prev.set('1.0.0.sqVersions', '[7.9,LATEST]')
+  const scope = nock('https://api.github.com')
+    .get('/repos/SonarSource/sonarqube/releases')
+    .reply(200, releases)
 
   const updated = await update(
     token,
@@ -19,6 +28,7 @@ test('update() replaces the LATEST in the previous version', async () => {
     'http://example.com/changelog',
     'http://example.com/download/1.0.1.jar'
   )
+  scope.done()
   expect(updated.get('1.0.0.sqVersions')).toBe('[7.9,8.5.*]')
 })
 
