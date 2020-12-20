@@ -2,6 +2,62 @@ require('./sourcemap-register.js');module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 6745:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.createTopic = void 0;
+const https_1 = __webpack_require__(7211);
+function createTopic(apiKey, username, mavenArtifactId, publicVersion, body) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const title = `[NEW RELEASE] ${mavenArtifactId} ${publicVersion}`;
+        const data = JSON.stringify({
+            title,
+            category: 15,
+            raw: body
+        });
+        // creating a new topic by https://docs.discourse.org/#tag/Topics/paths/~1posts.json/post
+        return new Promise((resolve, reject) => {
+            const req = https_1.request({
+                hostname: 'community.sonarsource.com',
+                path: '/posts.json',
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Content-Length': data.length,
+                    'Api-Key': apiKey,
+                    'Api-Username': username
+                }
+            }, res => {
+                if (res.statusCode !== 200) {
+                    reject(new Error(`Failed to create a topic in the community forum. The status code is ${JSON.stringify(res.statusCode)} and message is ${res.statusMessage}.`));
+                }
+                res.on('data', payload => {
+                    const { topic_id, topic_slug } = JSON.parse(payload);
+                    resolve(`https://community.sonarsource.com/t/${topic_slug}/${topic_id}`);
+                });
+            });
+            req.write(data);
+            req.end();
+        });
+    });
+}
+exports.createTopic = createTopic;
+
+
+/***/ }),
+
 /***/ 5928:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -188,7 +244,7 @@ function createPullRequest(token, owner, branch, releaseName, changelogUrl) {
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = github_1.getOctokit(token);
         const title = `Release ${releaseName}`;
-        const body = `We've released [${releaseName}](${changelogUrl}), please add it to the marketplace.
+        const body = `We've released [${releaseName}](${encodeURI(changelogUrl)}), please add it to the marketplace.
   I'll post to the forum and add its URL here later.
 
   Thanks in advance!`;
@@ -247,12 +303,12 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__webpack_require__(2186));
 const promisified_properties_1 = __webpack_require__(346);
 const update_1 = __webpack_require__(3056);
+const discourse_1 = __webpack_require__(6745);
 const github_1 = __webpack_require__(5928);
 const path_1 = __webpack_require__(5622);
 const crypto_1 = __webpack_require__(6417);
 const fs_1 = __webpack_require__(5747);
 const util_1 = __webpack_require__(1669);
-const console_1 = __webpack_require__(7082);
 function md5sum(path) {
     return __awaiter(this, void 0, void 0, function* () {
         return crypto_1.createHash('md5')
@@ -290,7 +346,7 @@ function run() {
             const formattedHash = md5sum(propFile);
             let ref = 'heads/master';
             if (sourceHash !== formattedHash) {
-                console_1.debug('This is the first run for this sonarqube plugin, so commit the format change first to ease the PR review...');
+                core.debug('This is the first run for this sonarqube plugin, so commit the format change first to ease the PR review...');
                 ref = yield github_1.commit(githubToken, forked.owner, forked.repo, path, rootDir, `format the properties file for automation`, ref);
             }
             const mavenArtifactId = prop.get('defaults.mavenArtifactId');
@@ -303,9 +359,38 @@ function run() {
             const branch = yield github_1.createBranch(githubToken, forked.owner, forked.repo, ref);
             core.setOutput('prop-file', propFile);
             const skip = core.getInput('skip-creating-pull-request');
-            if (!skip) {
-                const url = yield github_1.createPullRequest(githubToken, forked.owner, branch, `${mavenArtifactId} ${publicVersion}`, changelogUrl);
-                core.info(`PR has been created, visit ${url} to confirm.`);
+            if (skip) {
+                core.info('Skipped creating pull request.');
+            }
+            else {
+                const prUrl = yield github_1.createPullRequest(githubToken, forked.owner, branch, `${mavenArtifactId} ${publicVersion}`, changelogUrl);
+                core.info(`PR has been created, visit ${prUrl} to confirm.`);
+                const skipAnnounce = core.getInput('skip-announcing');
+                if (skipAnnounce) {
+                    core.info('Skipped creating announcement at Discourse.');
+                }
+                else {
+                    const discourseUsername = core.getInput('discourse-username', {
+                        required: true
+                    });
+                    const discourseApiKey = core.getInput('discourse-api-key', {
+                        required: true
+                    });
+                    const sonarCloudUrl = core.getInput('sonar-cloud-url', { required: true });
+                    const announceBody = `Hi,
+
+        We are announcing new ${mavenArtifactId} ${publicVersion}.
+        
+        Detailed changelog: ${encodeURI(changelogUrl)}
+        Download URL: ${encodeURI(downloadUrl)}
+        SonarCloud: ${encodeURI(sonarCloudUrl)}
+        PR for metadata: ${encodeURI(prUrl)}
+        
+        Thanks in advance!
+        <!-- this topic was created by sonar-update-center-action -->`;
+                    const topicUrl = yield discourse_1.createTopic(discourseApiKey, discourseUsername, mavenArtifactId, publicVersion, announceBody);
+                    core.info(`Announce has been created, visit ${topicUrl} to confirm.`);
+                }
             }
         }
         catch (error) {
@@ -9729,14 +9814,6 @@ module.exports = require("assert");;
 
 "use strict";
 module.exports = require("child_process");;
-
-/***/ }),
-
-/***/ 7082:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("console");;
 
 /***/ }),
 
