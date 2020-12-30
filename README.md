@@ -20,7 +20,7 @@ This action is still in beta, so provides limited features:
 - [x] Sync the default branch from the repo in SonarSource organization to the repo in your GitHub account
 - [x] Update the properties file, and push the topic branch to the repo in your GitHub account
 - [x] Send a PR to the [sonar-update-center-properties repo](https://github.com/SonarSource/sonar-update-center-properties)
-- [ ] Post to the [Community Forum](https://community.sonarsource.com/c/plugins)
+- [x] Post to the [Community Forum](https://community.sonarsource.com/c/plugins)
 
 It means that, you need to create a PR based on the topic branch pushed by this GitHub Action.
 
