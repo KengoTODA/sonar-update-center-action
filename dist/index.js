@@ -76,14 +76,11 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createPullRequest = exports.commit = exports.createBranch = exports.fork = exports.checkoutSourceRepo = void 0;
 const core_1 = __webpack_require__(2186);
 const exec_1 = __webpack_require__(1514);
-const octokit_plugin_create_pull_request_1 = __webpack_require__(6205);
-const utils_1 = __webpack_require__(3030);
+const github_1 = __webpack_require__(5438);
 const os_1 = __webpack_require__(2087);
 const fs_1 = __webpack_require__(5747);
 const util_1 = __webpack_require__(1669);
 const path_1 = __webpack_require__(5622);
-// https://github.com/actions/toolkit/tree/c861dd8859fe5294289fcada363ce9bc71e9d260/packages/github#extending-the-octokit-instance
-const octokit = utils_1.GitHub.plugin(octokit_plugin_create_pull_request_1.createPullRequest);
 function wait(ms) {
     return __awaiter(this, void 0, void 0, function* () {
         return new Promise(resolve => {
@@ -137,14 +134,14 @@ exports.checkoutSourceRepo = checkoutSourceRepo;
 function fork(token) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
-        const myOctokit = new octokit(utils_1.getOctokitOptions(token));
+        const octokit = github_1.getOctokit(token);
         core_1.debug(`Forking the SonarSource/sonar-update-center-properties repository...`);
-        yield myOctokit.repos.createFork({
+        yield octokit.repos.createFork({
             owner: 'SonarSource',
             repo: 'sonar-update-center-properties'
         });
         core_1.debug(`Forking finished. Confirming the progress of fork process up to five minutes...`);
-        const authenticated = yield myOctokit.users.getAuthenticated();
+        const authenticated = yield octokit.users.getAuthenticated();
         core_1.debug(`Expecting that the forked repository exists as ${authenticated.data.login}/sonar-update-center-properties.`);
         const startTime = Date.now();
         let count = 1;
@@ -152,7 +149,7 @@ function fork(token) {
         while (Date.now() - startTime < 5 * 60 * 1000) {
             core_1.debug(`Trying to check existence of the forked repo (Time: ${count})...`);
             try {
-                const resp = yield myOctokit.repos.get({
+                const resp = yield octokit.repos.get({
                     owner: authenticated.data.login,
                     repo: 'sonar-update-center-properties'
                 });
@@ -186,8 +183,8 @@ function createBranch(token, owner, repo, sha) {
     return __awaiter(this, void 0, void 0, function* () {
         const branch = generateRandomBranchName();
         core_1.debug(`creating a branch refs/heads/${branch} with specified sha: ${sha}`);
-        const myOctokit = new octokit(utils_1.getOctokitOptions(token));
-        yield myOctokit.git.createRef({
+        const octokit = github_1.getOctokit(token);
+        yield octokit.git.createRef({
             owner,
             repo,
             ref: `refs/heads/${branch}`,
@@ -199,25 +196,25 @@ function createBranch(token, owner, repo, sha) {
 exports.createBranch = createBranch;
 function commit(token, owner, repo, path, rootDir, message, refOrSha) {
     return __awaiter(this, void 0, void 0, function* () {
-        const myOctokit = new octokit(utils_1.getOctokitOptions(token));
+        const octokit = github_1.getOctokit(token);
         let commit_sha = refOrSha;
         if (refOrSha.startsWith('heads/')) {
             core_1.debug(`Finding sha of the parent commit with ref ${refOrSha}...`);
-            commit_sha = (yield myOctokit.git.getRef({ owner, repo, ref: refOrSha })).data
+            commit_sha = (yield octokit.git.getRef({ owner, repo, ref: refOrSha })).data
                 .object.sha;
         }
         const content = yield util_1.promisify(fs_1.readFile)(path_1.join(rootDir, path), {
             encoding: 'utf-8'
         });
         core_1.debug('Creating a blob...');
-        const blob = yield myOctokit.git.createBlob({
+        const blob = yield octokit.git.createBlob({
             owner,
             repo,
             content,
             encoding: 'utf-8'
         });
         core_1.debug(`Creating a tree with the base tree ${commit_sha}...`);
-        const tree = yield myOctokit.git.createTree({
+        const tree = yield octokit.git.createTree({
             owner,
             repo,
             base_tree: commit_sha,
@@ -231,7 +228,7 @@ function commit(token, owner, repo, path, rootDir, message, refOrSha) {
             ]
         });
         core_1.debug(`Creating a commit with tree ${tree.data.sha} and parent ${commit_sha}...`);
-        const newCommitSha = (yield myOctokit.git.createCommit({
+        const newCommitSha = (yield octokit.git.createCommit({
             owner,
             repo,
             message,
@@ -245,13 +242,13 @@ function commit(token, owner, repo, path, rootDir, message, refOrSha) {
 exports.commit = commit;
 function createPullRequest(token, owner, branch, releaseName, changelogUrl) {
     return __awaiter(this, void 0, void 0, function* () {
-        const myOctokit = new octokit(utils_1.getOctokitOptions(token));
+        const octokit = github_1.getOctokit(token);
         const title = `Release ${releaseName}`;
         const body = `We've released [${releaseName}](${encodeURI(changelogUrl)}), please add it to the marketplace.
   I'll post to the forum and add its URL here later.
 
   Thanks in advance!`;
-        const result = yield myOctokit.pulls.create({
+        const result = yield octokit.pulls.create({
             owner: 'SonarSource',
             repo: 'sonar-update-center-properties',
             title,
@@ -7126,328 +7123,6 @@ exports.Headers = Headers;
 exports.Request = Request;
 exports.Response = Response;
 exports.FetchError = FetchError;
-
-
-/***/ }),
-
-/***/ 6205:
-/***/ ((__unused_webpack_module, exports) => {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-
-function _defineProperty(obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true
-    });
-  } else {
-    obj[key] = value;
-  }
-
-  return obj;
-}
-
-function ownKeys(object, enumerableOnly) {
-  var keys = Object.keys(object);
-
-  if (Object.getOwnPropertySymbols) {
-    var symbols = Object.getOwnPropertySymbols(object);
-    if (enumerableOnly) symbols = symbols.filter(function (sym) {
-      return Object.getOwnPropertyDescriptor(object, sym).enumerable;
-    });
-    keys.push.apply(keys, symbols);
-  }
-
-  return keys;
-}
-
-function _objectSpread2(target) {
-  for (var i = 1; i < arguments.length; i++) {
-    var source = arguments[i] != null ? arguments[i] : {};
-
-    if (i % 2) {
-      ownKeys(Object(source), true).forEach(function (key) {
-        _defineProperty(target, key, source[key]);
-      });
-    } else if (Object.getOwnPropertyDescriptors) {
-      Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
-    } else {
-      ownKeys(Object(source)).forEach(function (key) {
-        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
-      });
-    }
-  }
-
-  return target;
-}
-
-async function valueToTreeObject(octokit, owner, repo, path, value) {
-  // Text files can be changed through the .content key
-  if (typeof value === "string") {
-    return {
-      path,
-      mode: "100644",
-      content: value
-    };
-  } // Binary files need to be created first using the git blob API,
-  // then changed by referencing in the .sha key
-
-
-  const {
-    data
-  } = await octokit.request("POST /repos/:owner/:repo/git/blobs", _objectSpread2({
-    owner,
-    repo
-  }, value));
-  const blobSha = data.sha;
-  return {
-    path,
-    mode: "100644",
-    sha: blobSha
-  };
-}
-
-async function createTree(state, changes) {
-  const {
-    octokit,
-    owner,
-    repo,
-    fork,
-    latestCommitSha,
-    latestCommitTreeSha
-  } = state;
-  const tree = (await Promise.all(Object.keys(changes.files).map(async path => {
-    const value = changes.files[path];
-
-    if (value === null) {
-      // Deleting a non-existent file from a tree leads to an "GitRPC::BadObjectState" error,
-      // so we only attempt to delete the file if it exists.
-      try {
-        // https://developer.github.com/v3/repos/contents/#get-contents
-        await octokit.request("HEAD /repos/:owner/:repo/contents/:path", {
-          owner: fork,
-          repo,
-          ref: latestCommitSha,
-          path
-        });
-        return {
-          path,
-          mode: "100644",
-          sha: null
-        };
-      } catch (error) {
-        return;
-      }
-    } // When passed a function, retrieve the content of the file, pass it
-    // to the function, then return the result
-
-
-    if (typeof value === "function") {
-      let result;
-
-      try {
-        const {
-          data: file
-        } = await octokit.request("GET /repos/:owner/:repo/contents/:path", {
-          owner: fork,
-          repo,
-          ref: latestCommitSha,
-          path
-        });
-        result = await value(Object.assign(file, {
-          exists: true
-        }));
-      } catch (error) {
-        // istanbul ignore if
-        if (error.status !== 404) throw error; // @ts-ignore
-
-        result = await value({
-          exists: false
-        });
-      }
-
-      if (result === null || typeof result === "undefined") return;
-      return valueToTreeObject(octokit, owner, repo, path, result);
-    }
-
-    return valueToTreeObject(octokit, owner, repo, path, value);
-  }))).filter(Boolean);
-
-  if (tree.length === 0) {
-    return null;
-  } // https://developer.github.com/v3/git/trees/#create-a-tree
-
-
-  const {
-    data: {
-      sha: newTreeSha
-    }
-  } = await octokit.request("POST /repos/:owner/:repo/git/trees", {
-    owner: fork,
-    repo,
-    base_tree: latestCommitTreeSha,
-    tree
-  });
-  return newTreeSha;
-}
-
-async function createCommit(state, treeCreated, changes) {
-  const {
-    octokit,
-    repo,
-    fork,
-    latestCommitSha
-  } = state;
-  const message = treeCreated ? changes.commit : typeof changes.emptyCommit === "string" ? changes.emptyCommit : changes.commit; // https://developer.github.com/v3/git/commits/#create-a-commit
-
-  const {
-    data: latestCommit
-  } = await octokit.request("POST /repos/:owner/:repo/git/commits", {
-    owner: fork,
-    repo,
-    message,
-    tree: state.latestCommitTreeSha,
-    parents: [latestCommitSha]
-  });
-  return latestCommit.sha;
-}
-
-async function composeCreatePullRequest(octokit, {
-  owner,
-  repo,
-  title,
-  body,
-  base,
-  head,
-  createWhenEmpty,
-  changes: changesOption,
-  draft = false
-}) {
-  const changes = Array.isArray(changesOption) ? changesOption : [changesOption];
-  if (changes.length === 0) throw new Error('[octokit-plugin-create-pull-request] "changes" cannot be an empty array');
-  const state = {
-    octokit,
-    owner,
-    repo
-  }; // https://developer.github.com/v3/repos/#get-a-repository
-
-  const {
-    data: repository,
-    headers
-  } = await octokit.request("GET /repos/:owner/:repo", {
-    owner,
-    repo
-  });
-  const isUser = !!headers["x-oauth-scopes"];
-
-  if (!repository.permissions) {
-    throw new Error("[octokit-plugin-create-pull-request] Missing authentication");
-  }
-
-  if (!base) {
-    base = repository.default_branch;
-  }
-
-  state.fork = owner;
-
-  if (isUser && !repository.permissions.push) {
-    // https://developer.github.com/v3/users/#get-the-authenticated-user
-    const user = await octokit.request("GET /user"); // https://developer.github.com/v3/repos/forks/#list-forks
-
-    const forks = await octokit.request("GET /repos/:owner/:repo/forks", {
-      owner,
-      repo
-    });
-    const hasFork = forks.data.find(fork => fork.owner.login === user.data.login);
-
-    if (!hasFork) {
-      // https://developer.github.com/v3/repos/forks/#create-a-fork
-      await octokit.request("POST /repos/:owner/:repo/forks", {
-        owner,
-        repo
-      });
-    }
-
-    state.fork = user.data.login;
-  } // https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
-
-
-  const {
-    data: [latestCommit]
-  } = await octokit.request("GET /repos/:owner/:repo/commits", {
-    owner,
-    repo,
-    sha: base,
-    per_page: 1
-  });
-  state.latestCommitSha = latestCommit.sha;
-  state.latestCommitTreeSha = latestCommit.commit.tree.sha;
-  const baseCommitTreeSha = latestCommit.commit.tree.sha;
-
-  for (const change of changes) {
-    let treeCreated = false;
-
-    if (change.files && Object.keys(change.files).length) {
-      const latestCommitTreeSha = await createTree(state, change);
-
-      if (latestCommitTreeSha) {
-        state.latestCommitTreeSha = latestCommitTreeSha;
-        treeCreated = true;
-      }
-    }
-
-    if (treeCreated || change.emptyCommit !== false) {
-      state.latestCommitSha = await createCommit(state, treeCreated, change);
-    }
-  }
-
-  const hasNoChanges = baseCommitTreeSha === state.latestCommitTreeSha;
-
-  if (hasNoChanges && createWhenEmpty === false) {
-    return null;
-  } // https://developer.github.com/v3/git/refs/#create-a-reference
-
-
-  await octokit.request("POST /repos/:owner/:repo/git/refs", {
-    owner: state.fork,
-    repo,
-    sha: state.latestCommitSha,
-    ref: `refs/heads/${head}`
-  }); // https://developer.github.com/v3/pulls/#create-a-pull-request
-
-  return await octokit.request("POST /repos/:owner/:repo/pulls", {
-    owner,
-    repo,
-    head: `${state.fork}:${head}`,
-    base,
-    title,
-    body,
-    draft
-  });
-}
-
-const VERSION = "3.9.1";
-
-/**
- * @param octokit Octokit instance
- */
-
-function createPullRequest(octokit) {
-  return {
-    createPullRequest: composeCreatePullRequest.bind(null, octokit)
-  };
-}
-createPullRequest.VERSION = VERSION;
-
-exports.composeCreatePullRequest = composeCreatePullRequest;
-exports.createPullRequest = createPullRequest;
-//# sourceMappingURL=index.js.map
 
 
 /***/ }),

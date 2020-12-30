@@ -27,7 +27,6 @@
     "@actions/core": "^1.2.6",
     "@actions/exec": "^1.0.4",
     "@actions/github": "^4.0.0",
-    "octokit-plugin-create-pull-request": "^3.9.1",
     "promisified-properties": "^2.0.14",
     "semver": "^7.3.4"
   },

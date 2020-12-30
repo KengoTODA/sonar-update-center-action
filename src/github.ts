@@ -1,14 +1,10 @@
 import {debug} from '@actions/core'
 import {exec} from '@actions/exec'
-import {createPullRequest as createPullRequestPlugin} from 'octokit-plugin-create-pull-request'
-import {GitHub, getOctokitOptions} from '@actions/github/lib/utils'
+import {getOctokit} from '@actions/github'
 import {tmpdir} from 'os'
 import {mkdtemp, readFile} from 'fs'
 import {promisify} from 'util'
 import {join} from 'path'
-
-// https://github.com/actions/toolkit/tree/c861dd8859fe5294289fcada363ce9bc71e9d260/packages/github#extending-the-octokit-instance
-const octokit = GitHub.plugin(createPullRequestPlugin)
 
 async function wait(ms: number): Promise<void> {
   return new Promise(resolve => {
@@ -75,9 +71,9 @@ export async function checkoutSourceRepo(
 export async function fork(
   token: string
 ): Promise<{owner: string; repo: string}> {
-  const myOctokit = new octokit(getOctokitOptions(token))
+  const octokit = getOctokit(token)
   debug(`Forking the SonarSource/sonar-update-center-properties repository...`)
-  await myOctokit.repos.createFork({
+  await octokit.repos.createFork({
     owner: 'SonarSource',
     repo: 'sonar-update-center-properties'
   })
@@ -85,7 +81,7 @@ export async function fork(
     `Forking finished. Confirming the progress of fork process up to five minutes...`
   )
 
-  const authenticated = await myOctokit.users.getAuthenticated()
+  const authenticated = await octokit.users.getAuthenticated()
   debug(
     `Expecting that the forked repository exists as ${authenticated.data.login}/sonar-update-center-properties.`
   )
@@ -95,7 +91,7 @@ export async function fork(
   while (Date.now() - startTime < 5 * 60 * 1000) {
     debug(`Trying to check existence of the forked repo (Time: ${count})...`)
     try {
-      const resp = await myOctokit.repos.get({
+      const resp = await octokit.repos.get({
         owner: authenticated.data.login,
         repo: 'sonar-update-center-properties'
       })
@@ -137,8 +133,8 @@ export async function createBranch(
 ): Promise<string> {
   const branch = generateRandomBranchName()
   debug(`creating a branch refs/heads/${branch} with specified sha: ${sha}`)
-  const myOctokit = new octokit(getOctokitOptions(token))
-  await myOctokit.git.createRef({
+  const octokit = getOctokit(token)
+  await octokit.git.createRef({
     owner,
     repo,
     ref: `refs/heads/${branch}`,
@@ -156,25 +152,25 @@ export async function commit(
   message: string,
   refOrSha: string
 ): Promise<string> {
-  const myOctokit = new octokit(getOctokitOptions(token))
+  const octokit = getOctokit(token)
   let commit_sha = refOrSha
   if (refOrSha.startsWith('heads/')) {
     debug(`Finding sha of the parent commit with ref ${refOrSha}...`)
-    commit_sha = (await myOctokit.git.getRef({owner, repo, ref: refOrSha})).data
+    commit_sha = (await octokit.git.getRef({owner, repo, ref: refOrSha})).data
       .object.sha
   }
   const content = await promisify(readFile)(join(rootDir, path), {
     encoding: 'utf-8'
   })
   debug('Creating a blob...')
-  const blob = await myOctokit.git.createBlob({
+  const blob = await octokit.git.createBlob({
     owner,
     repo,
     content,
     encoding: 'utf-8'
   })
   debug(`Creating a tree with the base tree ${commit_sha}...`)
-  const tree = await myOctokit.git.createTree({
+  const tree = await octokit.git.createTree({
     owner,
     repo,
     base_tree: commit_sha,
@@ -191,7 +187,7 @@ export async function commit(
     `Creating a commit with tree ${tree.data.sha} and parent ${commit_sha}...`
   )
   const newCommitSha = (
-    await myOctokit.git.createCommit({
+    await octokit.git.createCommit({
       owner,
       repo,
       message,
@@ -210,7 +206,7 @@ export async function createPullRequest(
   releaseName: string,
   changelogUrl: string
 ): Promise<string> {
-  const myOctokit = new octokit(getOctokitOptions(token))
+  const octokit = getOctokit(token)
   const title = `Release ${releaseName}`
   const body = `We've released [${releaseName}](${encodeURI(
     changelogUrl
@@ -218,7 +214,7 @@ export async function createPullRequest(
   I'll post to the forum and add its URL here later.
 
   Thanks in advance!`
-  const result = await myOctokit.pulls.create({
+  const result = await octokit.pulls.create({
     owner: 'SonarSource',
     repo: 'sonar-update-center-properties',
     title,
