@@ -1,12 +1,18 @@
 import * as core from '@actions/core'
 import {parseFile, write} from 'promisified-properties'
 import {update} from './update'
-import {checkoutSourceRepo, commit, createBranch, fork} from './github'
+import {createTopic} from './discourse'
+import {
+  checkoutSourceRepo,
+  commit,
+  createBranch,
+  createPullRequest,
+  fork
+} from './github'
 import {join} from 'path'
 import {createHash} from 'crypto'
 import {readFile} from 'fs'
 import {promisify} from 'util'
-import {debug} from 'console'
 
 async function md5sum(path: string): Promise<string> {
   return createHash('md5')
@@ -50,7 +56,7 @@ async function run(): Promise<void> {
     const formattedHash = md5sum(propFile)
     let ref = 'heads/master'
     if (sourceHash !== formattedHash) {
-      debug(
+      core.debug(
         'This is the first run for this sonarqube plugin, so commit the format change first to ease the PR review...'
       )
       ref = await commit(
@@ -90,12 +96,58 @@ async function run(): Promise<void> {
       `update properties file to release ${mavenArtifactId} ${publicVersion}`,
       ref
     )
-    createBranch(githubToken, forked.owner, forked.repo, ref)
-    const skip = core.getInput('skip-creating-pull-request')
-    if (!skip) {
-      // TODO create a PR, and post to the SQ forum
-    }
+    const branch = await createBranch(
+      githubToken,
+      forked.owner,
+      forked.repo,
+      ref
+    )
     core.setOutput('prop-file', propFile)
+
+    const skip = core.getInput('skip-creating-pull-request')
+    if (skip) {
+      core.info('Skipped creating pull request.')
+    } else {
+      const prUrl = await createPullRequest(
+        githubToken,
+        forked.owner,
+        branch,
+        `${mavenArtifactId} ${publicVersion}`,
+        changelogUrl
+      )
+      core.info(`PR has been created, visit ${prUrl} to confirm.`)
+      const skipAnnounce = core.getInput('skip-announcing')
+      if (skipAnnounce) {
+        core.info('Skipped creating announcement at Discourse.')
+      } else {
+        const discourseUsername = core.getInput('discourse-username', {
+          required: true
+        })
+        const discourseApiKey = core.getInput('discourse-api-key', {
+          required: true
+        })
+        const sonarCloudUrl = core.getInput('sonar-cloud-url', {required: true})
+        const announceBody = `Hi,
+
+        We are announcing new ${mavenArtifactId} ${publicVersion}.
+        
+        Detailed changelog: ${encodeURI(changelogUrl)}
+        Download URL: ${encodeURI(downloadUrl)}
+        SonarCloud: ${encodeURI(sonarCloudUrl)}
+        PR for metadata: ${encodeURI(prUrl)}
+        
+        Thanks in advance!
+        <!-- this topic was created by sonar-update-center-action -->`
+        const topicUrl = await createTopic(
+          discourseApiKey,
+          discourseUsername,
+          mavenArtifactId,
+          publicVersion,
+          announceBody
+        )
+        core.info(`Announce has been created, visit ${topicUrl} to confirm.`)
+      }
+    }
   } catch (error) {
     core.setFailed(error.message)
   }

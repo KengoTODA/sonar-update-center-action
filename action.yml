@@ -23,9 +23,15 @@ inputs:
   public-version:
     description: 'The version to release to the sonar update center'
     required: true
+  sonar-cloud-url:
+    description: 'The URL of sonar-cloud page for this release'
+    required: false
   github-token:
     description: 'The GitHub Personal Access Token with the public_repo permission'
     required: true
+  discourse-api-key:
+    description: 'The Discourse API key with write scope'
+    required: false
   skip-creating-pull-request:
     description: 'For debug; Skip creating a PR'
     default: false
