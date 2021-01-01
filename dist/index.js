@@ -359,14 +359,14 @@ function run() {
             const branch = yield github_1.createBranch(githubToken, forked.owner, forked.repo, ref);
             core.setOutput('prop-file', propFile);
             const skip = core.getInput('skip-creating-pull-request');
-            if (skip) {
+            if (skip === 'true') {
                 core.info('Skipped creating pull request.');
             }
             else {
                 const prUrl = yield github_1.createPullRequest(githubToken, forked.owner, branch, `${mavenArtifactId} ${publicVersion}`, changelogUrl);
                 core.info(`PR has been created, visit ${prUrl} to confirm.`);
                 const skipAnnounce = core.getInput('skip-announcing');
-                if (skipAnnounce) {
+                if (skipAnnounce === 'true') {
                     core.info('Skipped creating announcement at Discourse.');
                 }
                 else {
