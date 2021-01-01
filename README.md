@@ -42,6 +42,7 @@ In your workflow file under `.github/workdlows`, add a step using this plugin:
           public-version: ${{ github.event.release.tag_name }} # The version to publish
           sonar-cloud-url: https://sonarcloud.io/dashboard?branch=${{ github.event.release.tag_name }}&id=com.github.spotbugs%3Asonar-findbugs-plugin # The URL of SQ analysis result
           github-token: ${{ secrets.PAT_TO_FORK }} # The Personal Access Token
+          discourse-username: KengoTODA # The username at https://community.sonarsource.com/
           discourse-api-key: ${{ secrets.DISCOURSE_API_KEY }} # The API key for https://community.sonarsource.com/
           skip-creating-pull-request: true # Skip creating a PR
           skip-announcing: true # Skip accouncing at the Community Forum
