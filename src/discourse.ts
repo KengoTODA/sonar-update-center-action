@@ -10,7 +10,7 @@ export async function createTopic(
   const data = JSON.stringify({
     title,
     category: 15, // for plugin development
-    raw: body
+    raw: `${body}\n<!-- this topic was created by sonar-update-center-action -->`
   })
   // creating a new topic by https://docs.discourse.org/#tag/Topics/paths/~1posts.json/post
   return new Promise((resolve, reject) => {
