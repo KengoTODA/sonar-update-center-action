@@ -224,5 +224,5 @@ export async function createPullRequest(
     maintainer_can_modify: true,
     draft: true
   })
-  return result.data.url
+  return result.data.html_url
 }

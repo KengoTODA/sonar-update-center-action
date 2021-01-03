@@ -120,9 +120,6 @@ async function run(): Promise<void> {
       if (skipAnnounce === 'true') {
         core.info('Skipped creating announcement at Discourse.')
       } else {
-        const discourseUsername = core.getInput('discourse-username', {
-          required: true
-        })
         const discourseApiKey = core.getInput('discourse-api-key', {
           required: true
         })
@@ -140,7 +137,6 @@ async function run(): Promise<void> {
         <!-- this topic was created by sonar-update-center-action -->`
         const topicUrl = await createTopic(
           discourseApiKey,
-          discourseUsername,
           mavenArtifactId,
           publicVersion,
           announceBody
