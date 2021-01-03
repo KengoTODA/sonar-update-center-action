@@ -4,6 +4,7 @@ import {update} from './update'
 import {createTopic} from './discourse'
 import {
   checkoutSourceRepo,
+  commentOnPullRequest,
   commit,
   createBranch,
   createPullRequest,
@@ -108,14 +109,14 @@ async function run(): Promise<void> {
     if (skip === 'true') {
       core.info('Skipped creating pull request.')
     } else {
-      const prUrl = await createPullRequest(
+      const {pr_number, html_url} = await createPullRequest(
         githubToken,
         forked.owner,
         branch,
         `${mavenArtifactId} ${publicVersion}`,
         changelogUrl
       )
-      core.info(`PR has been created, visit ${prUrl} to confirm.`)
+      core.info(`PR has been created, visit ${html_url} to confirm.`)
       const sonarCloudUrl = core.getInput('sonar-cloud-url', {required: true})
       const announceBody = `Hi,
 
@@ -124,7 +125,7 @@ async function run(): Promise<void> {
       Detailed changelog: ${encodeURI(changelogUrl)}
       Download URL: ${encodeURI(downloadUrl)}
       SonarCloud: ${encodeURI(sonarCloudUrl)}
-      PR for metadata: ${encodeURI(prUrl)}
+      PR for metadata: ${encodeURI(html_url)}
       
       Thanks in advance!`
 
@@ -144,6 +145,8 @@ async function run(): Promise<void> {
           announceBody
         )
         core.info(`Announce has been created, visit ${topicUrl} to confirm.`)
+        const prComment = `I've posted at the forum, see ${topicUrl}`
+        await commentOnPullRequest(githubToken, pr_number, prComment)
       }
     }
   } catch (error) {

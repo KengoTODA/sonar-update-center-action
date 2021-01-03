@@ -72,7 +72,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.createPullRequest = exports.commit = exports.createBranch = exports.fork = exports.checkoutSourceRepo = void 0;
+exports.commentOnPullRequest = exports.createPullRequest = exports.commit = exports.createBranch = exports.fork = exports.checkoutSourceRepo = void 0;
 const core_1 = __webpack_require__(2186);
 const exec_1 = __webpack_require__(1514);
 const github_1 = __webpack_require__(5438);
@@ -257,10 +257,25 @@ function createPullRequest(token, owner, branch, releaseName, changelogUrl) {
             maintainer_can_modify: true,
             draft: true
         });
-        return result.data.html_url;
+        return {
+            pr_number: result.data.number,
+            html_url: result.data.html_url
+        };
     });
 }
 exports.createPullRequest = createPullRequest;
+function commentOnPullRequest(token, pr_number, body) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const octokit = github_1.getOctokit(token);
+        yield octokit.issues.createComment({
+            owner: 'SonarSource',
+            repo: 'sonar-update-center-properties',
+            issue_number: pr_number,
+            body
+        });
+    });
+}
+exports.commentOnPullRequest = commentOnPullRequest;
 
 
 /***/ }),
@@ -362,8 +377,8 @@ function run() {
                 core.info('Skipped creating pull request.');
             }
             else {
-                const prUrl = yield github_1.createPullRequest(githubToken, forked.owner, branch, `${mavenArtifactId} ${publicVersion}`, changelogUrl);
-                core.info(`PR has been created, visit ${prUrl} to confirm.`);
+                const { pr_number, html_url } = yield github_1.createPullRequest(githubToken, forked.owner, branch, `${mavenArtifactId} ${publicVersion}`, changelogUrl);
+                core.info(`PR has been created, visit ${html_url} to confirm.`);
                 const sonarCloudUrl = core.getInput('sonar-cloud-url', { required: true });
                 const announceBody = `Hi,
 
@@ -372,7 +387,7 @@ function run() {
       Detailed changelog: ${encodeURI(changelogUrl)}
       Download URL: ${encodeURI(downloadUrl)}
       SonarCloud: ${encodeURI(sonarCloudUrl)}
-      PR for metadata: ${encodeURI(prUrl)}
+      PR for metadata: ${encodeURI(html_url)}
       
       Thanks in advance!`;
                 const skipAnnounce = core.getInput('skip-announcing');
@@ -385,6 +400,8 @@ function run() {
                     });
                     const topicUrl = yield discourse_1.createTopic(discourseApiKey, mavenArtifactId, publicVersion, announceBody);
                     core.info(`Announce has been created, visit ${topicUrl} to confirm.`);
+                    const prComment = `I've posted at the forum, see ${topicUrl}`;
+                    yield github_1.commentOnPullRequest(githubToken, pr_number, prComment);
                 }
             }
         }
