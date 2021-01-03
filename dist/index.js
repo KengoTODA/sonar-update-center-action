@@ -19,7 +19,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.createTopic = void 0;
 const https_1 = __webpack_require__(7211);
-function createTopic(apiKey, username, mavenArtifactId, publicVersion, body) {
+function createTopic(apiKey, mavenArtifactId, publicVersion, body) {
     return __awaiter(this, void 0, void 0, function* () {
         const title = `[NEW RELEASE] ${mavenArtifactId} ${publicVersion}`;
         const data = JSON.stringify({
@@ -36,8 +36,7 @@ function createTopic(apiKey, username, mavenArtifactId, publicVersion, body) {
                 headers: {
                     'Content-Type': 'application/json',
                     'Content-Length': data.length,
-                    'Api-Key': apiKey,
-                    'Api-Username': username
+                    'User-Api-Key': apiKey,
                 }
             }, res => {
                 if (res.statusCode !== 200) {
@@ -258,7 +257,7 @@ function createPullRequest(token, owner, branch, releaseName, changelogUrl) {
             maintainer_can_modify: true,
             draft: true
         });
-        return result.data.url;
+        return result.data.html_url;
     });
 }
 exports.createPullRequest = createPullRequest;
@@ -370,9 +369,6 @@ function run() {
                     core.info('Skipped creating announcement at Discourse.');
                 }
                 else {
-                    const discourseUsername = core.getInput('discourse-username', {
-                        required: true
-                    });
                     const discourseApiKey = core.getInput('discourse-api-key', {
                         required: true
                     });
@@ -388,7 +384,7 @@ function run() {
         
         Thanks in advance!
         <!-- this topic was created by sonar-update-center-action -->`;
-                    const topicUrl = yield discourse_1.createTopic(discourseApiKey, discourseUsername, mavenArtifactId, publicVersion, announceBody);
+                    const topicUrl = yield discourse_1.createTopic(discourseApiKey, mavenArtifactId, publicVersion, announceBody);
                     core.info(`Announce has been created, visit ${topicUrl} to confirm.`);
                 }
             }

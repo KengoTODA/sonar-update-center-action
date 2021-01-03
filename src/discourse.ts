@@ -2,7 +2,6 @@ import {request} from 'https'
 
 export async function createTopic(
   apiKey: string,
-  username: string,
   mavenArtifactId: string,
   publicVersion: string,
   body: string
@@ -23,8 +22,7 @@ export async function createTopic(
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': data.length,
-          'Api-Key': apiKey,
-          'Api-Username': username
+          'User-Api-Key': apiKey
         }
       },
       res => {
