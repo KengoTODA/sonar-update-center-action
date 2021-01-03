@@ -25,7 +25,7 @@ function createTopic(apiKey, mavenArtifactId, publicVersion, body) {
         const data = JSON.stringify({
             title,
             category: 15,
-            raw: body
+            raw: `${body}\n<!-- this topic was created by sonar-update-center-action -->`
         });
         // creating a new topic by https://docs.discourse.org/#tag/Topics/paths/~1posts.json/post
         return new Promise((resolve, reject) => {
@@ -36,7 +36,7 @@ function createTopic(apiKey, mavenArtifactId, publicVersion, body) {
                 headers: {
                     'Content-Type': 'application/json',
                     'Content-Length': data.length,
-                    'User-Api-Key': apiKey,
+                    'User-Api-Key': apiKey
                 }
             }, res => {
                 if (res.statusCode !== 200) {
@@ -364,26 +364,25 @@ function run() {
             else {
                 const prUrl = yield github_1.createPullRequest(githubToken, forked.owner, branch, `${mavenArtifactId} ${publicVersion}`, changelogUrl);
                 core.info(`PR has been created, visit ${prUrl} to confirm.`);
+                const sonarCloudUrl = core.getInput('sonar-cloud-url', { required: true });
+                const announceBody = `Hi,
+
+      We are announcing new ${mavenArtifactId} ${publicVersion}.
+      
+      Detailed changelog: ${encodeURI(changelogUrl)}
+      Download URL: ${encodeURI(downloadUrl)}
+      SonarCloud: ${encodeURI(sonarCloudUrl)}
+      PR for metadata: ${encodeURI(prUrl)}
+      
+      Thanks in advance!`;
                 const skipAnnounce = core.getInput('skip-announcing');
                 if (skipAnnounce === 'true') {
-                    core.info('Skipped creating announcement at Discourse.');
+                    core.info('Skipped creating announcement at Discourse. Post the following text manually:\n${announceBody}');
                 }
                 else {
                     const discourseApiKey = core.getInput('discourse-api-key', {
                         required: true
                     });
-                    const sonarCloudUrl = core.getInput('sonar-cloud-url', { required: true });
-                    const announceBody = `Hi,
-
-        We are announcing new ${mavenArtifactId} ${publicVersion}.
-        
-        Detailed changelog: ${encodeURI(changelogUrl)}
-        Download URL: ${encodeURI(downloadUrl)}
-        SonarCloud: ${encodeURI(sonarCloudUrl)}
-        PR for metadata: ${encodeURI(prUrl)}
-        
-        Thanks in advance!
-        <!-- this topic was created by sonar-update-center-action -->`;
                     const topicUrl = yield discourse_1.createTopic(discourseApiKey, mavenArtifactId, publicVersion, announceBody);
                     core.info(`Announce has been created, visit ${topicUrl} to confirm.`);
                 }

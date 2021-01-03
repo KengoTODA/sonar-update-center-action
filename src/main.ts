@@ -116,25 +116,27 @@ async function run(): Promise<void> {
         changelogUrl
       )
       core.info(`PR has been created, visit ${prUrl} to confirm.`)
+      const sonarCloudUrl = core.getInput('sonar-cloud-url', {required: true})
+      const announceBody = `Hi,
+
+      We are announcing new ${mavenArtifactId} ${publicVersion}.
+      
+      Detailed changelog: ${encodeURI(changelogUrl)}
+      Download URL: ${encodeURI(downloadUrl)}
+      SonarCloud: ${encodeURI(sonarCloudUrl)}
+      PR for metadata: ${encodeURI(prUrl)}
+      
+      Thanks in advance!`
+
       const skipAnnounce = core.getInput('skip-announcing')
       if (skipAnnounce === 'true') {
-        core.info('Skipped creating announcement at Discourse.')
+        core.info(
+          'Skipped creating announcement at Discourse. Post the following text manually:\n${announceBody}'
+        )
       } else {
         const discourseApiKey = core.getInput('discourse-api-key', {
           required: true
         })
-        const sonarCloudUrl = core.getInput('sonar-cloud-url', {required: true})
-        const announceBody = `Hi,
-
-        We are announcing new ${mavenArtifactId} ${publicVersion}.
-        
-        Detailed changelog: ${encodeURI(changelogUrl)}
-        Download URL: ${encodeURI(downloadUrl)}
-        SonarCloud: ${encodeURI(sonarCloudUrl)}
-        PR for metadata: ${encodeURI(prUrl)}
-        
-        Thanks in advance!
-        <!-- this topic was created by sonar-update-center-action -->`
         const topicUrl = await createTopic(
           discourseApiKey,
           mavenArtifactId,
