@@ -378,7 +378,7 @@ function run() {
             }
             else {
                 const { pr_number, html_url } = yield github_1.createPullRequest(githubToken, forked.owner, branch, `${mavenArtifactId} ${publicVersion}`, changelogUrl);
-                core.info(`PR has been created, visit ${html_url} to confirm.`);
+                core.info(`Draft PR has been created, visit ${html_url} to review.`);
                 const sonarCloudUrl = core.getInput('sonar-cloud-url', { required: true });
                 const announceBody = `Hi,
 

@@ -116,7 +116,7 @@ async function run(): Promise<void> {
         `${mavenArtifactId} ${publicVersion}`,
         changelogUrl
       )
-      core.info(`PR has been created, visit ${html_url} to confirm.`)
+      core.info(`Draft PR has been created, visit ${html_url} to review.`)
       const sonarCloudUrl = core.getInput('sonar-cloud-url', {required: true})
       const announceBody = `Hi,
 
