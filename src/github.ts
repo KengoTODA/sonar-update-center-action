@@ -205,7 +205,7 @@ export async function createPullRequest(
   branch: string,
   releaseName: string,
   changelogUrl: string
-): Promise<string> {
+): Promise<{pr_number: number; html_url: string}> {
   const octokit = getOctokit(token)
   const title = `Release ${releaseName}`
   const body = `We've released [${releaseName}](${encodeURI(
@@ -224,5 +224,22 @@ export async function createPullRequest(
     maintainer_can_modify: true,
     draft: true
   })
-  return result.data.html_url
+  return {
+    pr_number: result.data.number,
+    html_url: result.data.html_url
+  }
+}
+
+export async function commentOnPullRequest(
+  token: string,
+  pr_number: number,
+  body: string
+): Promise<void> {
+  const octokit = getOctokit(token)
+  await octokit.issues.createComment({
+    owner: 'SonarSource',
+    repo: 'sonar-update-center-properties',
+    issue_number: pr_number,
+    body
+  })
 }
