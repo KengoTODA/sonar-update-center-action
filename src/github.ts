@@ -73,7 +73,7 @@ export async function fork(
 ): Promise<{owner: string; repo: string}> {
   const octokit = getOctokit(token)
   debug(`Forking the SonarSource/sonar-update-center-properties repository...`)
-  await octokit.repos.createFork({
+  await octokit.rest.repos.createFork({
     owner: 'SonarSource',
     repo: 'sonar-update-center-properties'
   })
@@ -81,7 +81,7 @@ export async function fork(
     `Forking finished. Confirming the progress of fork process up to five minutes...`
   )
 
-  const authenticated = await octokit.users.getAuthenticated()
+  const authenticated = await octokit.rest.users.getAuthenticated()
   debug(
     `Expecting that the forked repository exists as ${authenticated.data.login}/sonar-update-center-properties.`
   )
@@ -91,7 +91,7 @@ export async function fork(
   while (Date.now() - startTime < 5 * 60 * 1000) {
     debug(`Trying to check existence of the forked repo (Time: ${count})...`)
     try {
-      const resp = await octokit.repos.get({
+      const resp = await octokit.rest.repos.get({
         owner: authenticated.data.login,
         repo: 'sonar-update-center-properties'
       })
@@ -134,7 +134,7 @@ export async function createBranch(
   const branch = generateRandomBranchName()
   debug(`creating a branch refs/heads/${branch} with specified sha: ${sha}`)
   const octokit = getOctokit(token)
-  await octokit.git.createRef({
+  await octokit.rest.git.createRef({
     owner,
     repo,
     ref: `refs/heads/${branch}`,
@@ -156,21 +156,21 @@ export async function commit(
   let commit_sha = refOrSha
   if (refOrSha.startsWith('heads/')) {
     debug(`Finding sha of the parent commit with ref ${refOrSha}...`)
-    commit_sha = (await octokit.git.getRef({owner, repo, ref: refOrSha})).data
-      .object.sha
+    commit_sha = (await octokit.rest.git.getRef({owner, repo, ref: refOrSha}))
+      .data.object.sha
   }
   const content = await promisify(readFile)(join(rootDir, path), {
     encoding: 'utf-8'
   })
   debug('Creating a blob...')
-  const blob = await octokit.git.createBlob({
+  const blob = await octokit.rest.git.createBlob({
     owner,
     repo,
     content,
     encoding: 'utf-8'
   })
   debug(`Creating a tree with the base tree ${commit_sha}...`)
-  const tree = await octokit.git.createTree({
+  const tree = await octokit.rest.git.createTree({
     owner,
     repo,
     base_tree: commit_sha,
@@ -187,7 +187,7 @@ export async function commit(
     `Creating a commit with tree ${tree.data.sha} and parent ${commit_sha}...`
   )
   const newCommitSha = (
-    await octokit.git.createCommit({
+    await octokit.rest.git.createCommit({
       owner,
       repo,
       message,
@@ -214,7 +214,7 @@ export async function createPullRequest(
   I'll post to the forum and add its URL here later.
 
   Thanks in advance!`
-  const result = await octokit.pulls.create({
+  const result = await octokit.rest.pulls.create({
     owner: 'SonarSource',
     repo: 'sonar-update-center-properties',
     title,
@@ -236,7 +236,7 @@ export async function commentOnPullRequest(
   body: string
 ): Promise<void> {
   const octokit = getOctokit(token)
-  await octokit.issues.createComment({
+  await octokit.rest.issues.createComment({
     owner: 'SonarSource',
     repo: 'sonar-update-center-properties',
     issue_number: pr_number,
