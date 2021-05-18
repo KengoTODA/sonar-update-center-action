@@ -5,7 +5,7 @@ export async function searchLatestMinorVersion(token: string): Promise<string> {
   const octokit = getOctokit(token)
   let latest = ''
   for await (const response of octokit.paginate.iterator(
-    octokit.repos.listReleases,
+    octokit.rest.repos.listReleases,
     {
       owner: 'SonarSource',
       repo: 'sonarqube'
