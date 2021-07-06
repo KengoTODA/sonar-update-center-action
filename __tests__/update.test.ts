@@ -2,16 +2,14 @@ import nock from 'nock'
 import {update} from '../src/update'
 import releases from './fixtures/sonarqube-releases.json'
 
-const token = process.env.GITHUB_TOKEN
-if (!token) {
-  throw new Error('No GITHUB_TOKEN env var found')
-}
+const token = process.env.GITHUB_TOKEN || ''
+const integrationTest = token ? test : test.skip
 
 afterEach(() => {
   nock.cleanAll()
 })
 
-test('update() replaces the LATEST in the previous version', async () => {
+integrationTest('update() replaces the LATEST in the previous version', async () => {
   const prev = new Map<string, string>()
   prev.set('publicVersions', '1.0.0')
   prev.set('1.0.0.sqVersions', '[7.9,LATEST]')
@@ -32,7 +30,7 @@ test('update() replaces the LATEST in the previous version', async () => {
   expect(updated.get('1.0.0.sqVersions')).toBe('[7.9,8.5.*]')
 })
 
-test('update() replaces the publicVersions', async () => {
+integrationTest('update() replaces the publicVersions', async () => {
   const prev = new Map<string, string>()
   prev.set('publicVersions', '1.0.0')
   prev.set('1.0.0.sqVersions', '[7.9,LATEST]')
@@ -50,7 +48,7 @@ test('update() replaces the publicVersions', async () => {
   expect(updated.get('archivedVersions')).toBe('1.0.0')
 })
 
-test('update() appends the archivedVersions', async () => {
+integrationTest('update() appends the archivedVersions', async () => {
   const prev = new Map<string, string>()
   prev.set('publicVersions', '1.0.1')
   prev.set('archivedVersions', '1.0.0')
