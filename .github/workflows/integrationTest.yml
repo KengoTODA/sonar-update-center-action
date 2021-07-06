@@ -22,7 +22,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: integration-test
           conclusion: ${{ job.status }}
-          details_url : ${{ $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID }}
+          details_url : https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
   integrated-test: # make sure the action works on a clean machine without building
     runs-on: ubuntu-latest
     if: github.event.workflow_run.conclusion == 'success'
@@ -49,4 +49,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: integrated-test
           conclusion: ${{ job.status }}
-          details_url : ${{ $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID }}
+          details_url : https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
