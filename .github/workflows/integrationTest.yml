@@ -1,14 +1,14 @@
-name: 'build-test'
-on: # rebuild any PRs and main branch changes
-  pull_request:
-  push:
-    branches:
-      - main
-      - 'releases/*'
-
+name: integartion-test
+on:
+  workflow_run:
+    workflows:
+      - build
+    types:
+      - completed
 jobs:
-  build: # make sure build/ci work properly
+  integration-test:
     runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v2
       - run: |
@@ -16,8 +16,9 @@ jobs:
           npm run all
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TO_FORK }}
-  test: # make sure the action works on a clean machine without building
+  integrated-test: # make sure the action works on a clean machine without building
     runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
     steps:
       - uses: actions/checkout@v2
       - uses: ./
