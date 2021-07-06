@@ -23,6 +23,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: integration-test
+          sha: ${{ github.event.workflow_run.head_sha }}
           conclusion: ${{ job.status }}
           details_url : https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
   integrated-test: # make sure the action works on a clean machine without building
@@ -52,5 +53,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: integrated-test
+          sha: ${{ github.event.workflow_run.head_sha }}
           conclusion: ${{ job.status }}
           details_url : https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}
