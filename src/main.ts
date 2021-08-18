@@ -1,7 +1,4 @@
 import * as core from '@actions/core'
-import {parseFile, write} from 'promisified-properties'
-import {update} from './update'
-import {createTopic} from './discourse'
 import {
   checkoutSourceRepo,
   commentOnPullRequest,
@@ -10,10 +7,13 @@ import {
   createPullRequest,
   fork
 } from './github'
-import {join} from 'path'
+import {parseFile, write} from 'promisified-properties'
 import {createHash} from 'crypto'
-import {readFile} from 'fs'
+import {createTopic} from './discourse'
+import {join} from 'path'
 import {promisify} from 'util'
+import {readFile} from 'fs'
+import {update} from './update'
 
 async function md5sum(path: string): Promise<string> {
   return createHash('md5')

@@ -1,10 +1,10 @@
+import {mkdtemp, readFile} from 'fs'
 import {debug} from '@actions/core'
 import {exec} from '@actions/exec'
 import {getOctokit} from '@actions/github'
-import {tmpdir} from 'os'
-import {mkdtemp, readFile} from 'fs'
-import {promisify} from 'util'
 import {join} from 'path'
+import {promisify} from 'util'
+import {tmpdir} from 'os'
 
 async function wait(ms: number): Promise<void> {
   return new Promise(resolve => {
