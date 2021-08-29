@@ -1,4 +1,5 @@
 import {mkdtemp, readFile} from 'fs'
+import {RequestError} from '@octokit/request-error'
 import {debug} from '@actions/core'
 import {exec} from '@actions/exec'
 import {getOctokit} from '@actions/github'
@@ -109,7 +110,11 @@ export async function fork(
 
       break
     } catch (error) {
-      if (error.name === 'HttpError' && error.status === 404) {
+      if (
+        error instanceof RequestError &&
+        error.name === 'HttpError' &&
+        error.status === 404
+      ) {
         count++
         await wait(10 * 1000)
         continue
